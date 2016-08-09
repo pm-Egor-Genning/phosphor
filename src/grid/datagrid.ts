@@ -11,34 +11,11 @@
  *
  */
 export
-interface IHeaderView<T extends IDataModel> extends Widget {
-  /**
-   *
-   */
-  size: number;
+class DataGrid<T extends DataModel> extends Widget {
 
-  /**
-   *
-   */
-  offset: number;
-
-  /**
-   *
-   */
   model: T;
 
-  /**
-   *
-   */
-  abstract sectionPosition(index: number): number;
+  horizontalHeader: GridHeader<T>;
 
-  /**
-   *
-   */
-  abstract sectionSize(index: number): number;
-
-  /**
-   *
-   */
-  abstract sectionAt(position: number): number;
+  verticalHeader: GridHeader<T>;
 }

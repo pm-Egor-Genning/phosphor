@@ -11,26 +11,11 @@
  *
  */
 export
-abstract class DataModel {
+abstract class GridModel {
   /**
    *
    */
   modelChanged: ISignal<this, void>;
-
-  /**
-   *
-   */
-  cellDataChanged: ISignal<this, ...>;
-
-  /**
-   *
-   */
-  rowHeaderDataChanged: ISignal<this, ...>;
-
-  /**
-   *
-   */
-  columnHeaderDataChanged: ISignal<this, ...>;
 
   /**
    *
@@ -65,6 +50,21 @@ abstract class DataModel {
   /**
    *
    */
+  rowDataChanged: ISignal<this, ...>;
+
+  /**
+   *
+   */
+  columnDataChanged: ISignal<this, ...>;
+
+  /**
+   *
+   */
+  cellDataChanged: ISignal<this, ...>;
+
+  /**
+   *
+   */
   abstract rowCount(): number;
 
   /**
@@ -75,31 +75,31 @@ abstract class DataModel {
   /**
    *
    */
-  abstract cellData(row: number, column: number, out: DataModel.IDatum): void;
+  abstract rowData(row: number, out: DataModel.IData): void;
 
   /**
    *
    */
-  abstract rowHeaderData(row: number, out: DataModel.IDatum): void;
+  abstract columnData(column: number, out: DataModel.IData): void;
 
   /**
    *
    */
-  abstract columnHeaderData(column: number, out: DataModel.IDatum): void;
+  abstract cellData(row: number, column: number, out: DataModel.IData): void;
 }
 
 
 //
 defineSignal(DataModel.prototype, 'modelChanged');
-defineSignal(DataModel.prototype, 'cellDataChanged');
-defineSignal(DataModel.prototype, 'rowHeaderDataChanged');
-defineSignal(DataModel.prototype, 'columnHeaderDataChanged');
 defineSignal(DataModel.prototype, 'rowsInserted');
 defineSignal(DataModel.prototype, 'rowsRemoved');
 defineSignal(DataModel.prototype, 'rowsMoved');
 defineSignal(DataModel.prototype, 'columnsInserted');
 defineSignal(DataModel.prototype, 'columnsRemoved');
 defineSignal(DataModel.prototype, 'columnsMoved');
+defineSignal(DataModel.prototype, 'rowDataChanged');
+defineSignal(DataModel.prototype, 'columnDataChanged');
+defineSignal(DataModel.prototype, 'cellDataChanged');
 
 
 /**
@@ -111,16 +111,16 @@ namespace DataModel {
    *
    */
   export
-  interface IDatum {
+  interface IData {
     /**
      *
      */
-    value: any;
+    type: string;
 
     /**
      *
      */
-    renderer: string;
+    value: any;
 
     /**
      *
