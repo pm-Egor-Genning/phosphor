@@ -10,6 +10,10 @@ import {
 } from '../lib/core/messaging';
 
 import {
+  DataGrid
+} from '../lib/grid/datagrid';
+
+import {
   BoxPanel
 } from '../lib/ui/boxpanel';
 
@@ -302,11 +306,14 @@ function main(): void {
   let g1 = new ContentWidget('Green');
   let y1 = new ContentWidget('Yellow');
 
+  let grid = new DataGrid();
+
   let dock = new DockPanel();
   dock.addWidget(r1);
   dock.addWidget(b1, { mode: 'split-right', ref: r1 });
   dock.addWidget(y1, { mode: 'split-bottom', ref: b1 });
   dock.addWidget(g1, { mode: 'split-left', ref: y1 });
+  dock.addWidget(grid);
 
   dock.currentChanged.connect((s, a) => { console.log(a); });
 

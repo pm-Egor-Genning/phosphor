@@ -55,23 +55,16 @@ interface IRect {
  *
  */
 export
-type GC = CanvasGraphicsContext2D;
-
-
-/**
- *
- */
-export
 interface ICellRenderer {
   /**
    *
    */
-  sizeHint(gc: GC, value: any, config: any): ISize;
+  sizeHint(gc: CanvasRenderingContext2D, value: any, config: any): ISize;
 
   /**
    *
    */
-  paint(gc: GC, rect: IRect, value: any, config: any): void;
+  paint(gc: CanvasRenderingContext2D, rect: IRect, value: any, config: any): void;
 }
 
 

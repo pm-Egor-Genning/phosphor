@@ -5,27 +5,43 @@
 |
 | The full license is in the file LICENSE, distributed with this software.
 |----------------------------------------------------------------------------*/
+import {
+  ISignal, defineSignal
+} from '../core/signaling';
+
+import {
+  Widget
+} from '../ui/widget';
+
+import {
+  DataModel
+} from './datamodel';
 
 
 /**
  *
  */
 export
-interface IHeaderView<T extends IDataModel> extends Widget {
+abstract class GridHeader extends Widget {
   /**
    *
    */
-  size: number;
+  sectionsResized: ISignal<this, GridHeader.ISectionRange>;
 
   /**
    *
    */
-  offset: number;
+  model: DataModel;
 
   /**
    *
    */
-  model: T;
+  scrollPosition: number;
+
+  /**
+   *
+   */
+  scrollSize: number;
 
   /**
    *
@@ -41,4 +57,31 @@ interface IHeaderView<T extends IDataModel> extends Widget {
    *
    */
   abstract sectionAt(position: number): number;
+}
+
+
+//
+defineSignal(GridHeader.prototype, 'sectionsResized');
+
+
+/**
+ *
+ */
+export
+namespace GridHeader {
+  /**
+   *
+   */
+  export
+  interface ISectionRange {
+    /**
+     *
+     */
+    start: number;
+
+    /**
+     *
+     */
+    end: number;
+  }
 }
