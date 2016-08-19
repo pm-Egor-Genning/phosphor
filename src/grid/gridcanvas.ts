@@ -21,10 +21,6 @@ import {
   DataModel
 } from './datamodel';
 
-import {
-  GridHeader
-} from './gridheader';
-
 
 /**
  * The class name added to grid canvas instance.
@@ -397,8 +393,8 @@ class GridCanvas extends Widget {
     // Setup the drawing region.
     let rgn: Private.IRegion = {
       x: x, y: y, width: 0, height: 0,
-      startColumn: i1, endColumn: i2,
-      startRow: j1, endRow: j2,
+      firstColumn: i1, lastColumn: i2,
+      firstRow: j1, lastRow: j2,
       columnSizes: [], rowSizes: []
     };
 
@@ -493,7 +489,7 @@ class GridCanvas extends Widget {
       let y = rgn.y;
       for (let j = 0, nRows = rowSizes.length; j < nRows; ++j) {
         let h = rowSizes[j];
-        gc.fillText(`Cell ${rgn.startRow + j}, ${rgn.startColumn + i}`, x, y + h / 2);
+        gc.fillText(`Cell ${rgn.firstRow + j}, ${rgn.firstColumn + i}`, x, y + h / 2);
         y += h;
       }
       x += colSizes[i];
@@ -503,7 +499,9 @@ class GridCanvas extends Widget {
   /**
    * Handle the `sectionsResized` signal of the grid sections.
    */
-  private _onSectionsResized(sender: GridCanvas.ISections, range: GridCanvas.ISectionRange): void { }
+  private _onSectionsResized(sender: GridCanvas.ISections, range: GridCanvas.ISectionRange): void {
+
+  }
 
   private _scrollX = 0;
   private _scrollY = 0;
@@ -529,35 +527,84 @@ namespace GridCanvas {
   }
 
   /**
-   *
+   * An object which represents a range of sections.
    */
   export
   interface ISectionRange {
+    /**
+     * The first index in the range, inclusive.
+     *
+     * This must be an integer `<= last`.
+     */
+    first: number;
 
+    /**
+     * The last index in the range, inclusive.
+     *
+     * This must be an integer `>= first`.
+     */
+    last: number;
   }
 
   /**
+   * An object which controls the geometry of sections in a grid.
    *
+   * #### Notes
+   * A grid canvas uses two of these objects to layout the cells
+   * in the grid: one for rows, and one for columns. The methods
+   * of these objects are called often, and should be as efficient
+   * as possible.
    */
   export
   interface ISections {
     /**
+     * A signal emitted when sections have been resized.
      *
+     * The args object is the range of sections affected.
      */
     sectionsResized: ISignal<ISections, ISectionRange>;
 
     /**
+     * Get the origin of a specific section.
      *
+     * @params index - The index of the section of interest.
+     *
+     * @returns The integer position of the section in pixels,
+     *   or `-1` if the index is out of range.
+     *
+     * #### Notes
+     * The sections **must** be arranged in a dense sequence such that
+     * `sectionPosition(i) + sectionSize(i) === sectionPosition(i + 1)`.
+     *
+     * The position for index `0` **must** be `0`.
      */
     sectionPosition(index: number): number;
 
     /**
+     * Get the size of a specific section.
      *
+     * @params index - The index of the section of interest.
+     *
+     * @returns The integer size of the section in pixels, or
+     *   `-1` if the index is out of range.
+     *
+     * #### Notes
+     * The size of a valid index **must** be `>= 0`.
+     *
+     * If a section has a `0` size, it will not be rendered.
      */
     sectionSize(index: number): number;
 
     /**
+     * Get the index of the section at a given position.
      *
+     * @params position - The position of the section of interest.
+     *
+     * @returns The index of the section which intersects the
+     *   given position, or `-1` if the position is out of range.
+     *
+     * #### Notes
+     * The position will be an integer `>= 0`.
      */
     sectionAt(position: number): number;
   }
@@ -569,57 +616,75 @@ namespace GridCanvas {
  */
 namespace Private {
   /**
+   * An object which represents the dirty region of a grid.
    *
+   * A dirty region is always aligned to whole-cell boundaries.
    */
   export
   interface IRegion {
     /**
+     * The X coordinate of the dirty rect.
      *
+     * This value corresponds to the canvas coordinates of the left
+     * edge of the first cell in the region. It is already adjusted
+     * for the grid scroll offset.
      */
     x: number;
 
     /**
+     * The Y coordinate of the dirty rect.
      *
+     * This value corresponds to the canvas coordinates of the top
+     * edge of the first cell in the region. It is already adjusted
+     * for the grid scroll offset.
      */
     y: number;
 
     /**
+     * The width of the dirty rect.
      *
+     * This is the total width of all columns in the region.
      */
     width: number;
 
     /**
+     * The height of the dirty rect.
      *
+     * This is the total height of all rows in the region.
      */
     height: number;
 
     /**
-     *
+     * The index of the first row in the region.
      */
-    startRow: number;
+    firstRow: number;
 
     /**
-     *
+     * The index of the last row in the region.
      */
-    endRow: number;
+    lastRow: number;
 
     /**
-     *
+     * The index of the first column in the region.
      */
-    startColumn: number;
+    firstColumn: number;
 
     /**
-     *
+     * The index of the last column in the region.
      */
-    endColumn: number;
+    lastColumn: number;
 
     /**
+     * The sizes of the rows in the region.
      *
+     * The sizes are ordered from `firstRow` to `lastRow`.
      */
     rowSizes: number[];
 
     /**
+     * The sizes of the columns in the region.
      *
+     * The sizes are ordered from `firstColumn` to `lastColumn`.
      */
     columnSizes: number[];
   }
@@ -633,44 +698,5 @@ namespace Private {
   export
   function nextColor(): string {
     return colors[ci++ % colors.length];
-  }
-
-  const COL_WIDTH = 60;
-  const ROW_HEIGHT = 20;
-
-  export
-  function rowSize(index: number): number {
-    return ROW_HEIGHT;
-  }
-
-  export
-  function columnSize(index: number): number {
-    return COL_WIDTH;
-  }
-
-  export
-  function rowPosition(index: number): number {
-    return index * ROW_HEIGHT;
-  }
-
-  export
-  function columnPosition(index: number): number {
-    return index * COL_WIDTH;
-  }
-
-  export
-  function rowAt(position: number): number {
-    if (position < 0) {
-      return -1;
-    }
-    return Math.floor(position / ROW_HEIGHT);
-  }
-
-  export
-  function columnAt(position: number): number {
-    if (position < 0) {
-      return -1;
-    }
-    return Math.floor(position / COL_WIDTH);
   }
 }
