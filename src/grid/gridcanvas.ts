@@ -32,35 +32,10 @@ import {
 const GRID_CANVAS_CLASS = 'p-GridCanvas';
 
 /**
- * The class name added to a grid canvas canvas node.
+ * The class name added to the canvas node of a grid canvas.
  */
 const CANVAS_CLASS = 'p-GridCanvas-canvas';
 
-
-// class DummyModel extends DataModel {
-//   rowCount(): number { return 20; }
-//   columnCount(): number { return 10; }
-//   rowHeaderData(row: number, out: DataModel.IData): void { }
-//   columnHeaderData(column: number, out: DataModel.IData): void { }
-//   cellData(row: number, column: number, out: DataModel.IData): void { }
-// }
-
-
-// class DummySections implements GridCanvas.ISections {
-
-//   sectionPosition(index: number): number {
-//     if (index < 0 || index)
-
-//   }
-
-//   sectionSize(index: number): number {
-
-//   }
-
-//   sectionAt(position: number): number {
-
-//   }
-// }
 
 /**
  * A widget which renders the cells of a grid.
@@ -68,26 +43,26 @@ const CANVAS_CLASS = 'p-GridCanvas-canvas';
  * #### Notes
  * User code will not normally interact with this class directly.
  *
- * The `DataGrid` uses an instance of the class internally.
+ * The `DataGrid` class uses an instance of the class internally.
  */
 export
 class GridCanvas extends Widget {
   /**
    * Construct a new gird canvas.
+   *
+   * @param options - The options for initializing the canvas.
    */
   constructor(options: GridCanvas.IOptions = {}) {
     super();
     this.addClass(GRID_CANVAS_CLASS);
     this.setFlag(WidgetFlag.DisallowLayout);
 
-    // Parse the options.
-
     // Create the offscreen rendering buffer.
     this._buffer = document.createElement('canvas');
     this._buffer.width = 0;
     this._buffer.height = 0;
 
-    // Create the onscreen canvas.
+    // Create the onscreen rendering canvas.
     this._canvas = document.createElement('canvas');
     this._canvas.className = CANVAS_CLASS;
     this._canvas.width = 0;
@@ -162,12 +137,12 @@ class GridCanvas extends Widget {
 
     // Disconnect the signal handlers from the old sections.
     if (old) {
-      old.sectionsResized.disconnect(this._onRowsResized, this);
+      old.sectionsResized.disconnect(this._onSectionsResized, this);
     }
 
     // Connect the signal handlers for the new sections.
     if (value) {
-      value.sectionsResized.connect(this._onRowsResized, this);
+      value.sectionsResized.connect(this._onSectionsResized, this);
     }
 
     // Update the internal sections reference.
@@ -201,12 +176,12 @@ class GridCanvas extends Widget {
 
     // Disconnect the signal handlers from the old sections.
     if (old) {
-      old.sectionsResized.disconnect(this._onColumnsResized, this);
+      old.sectionsResized.disconnect(this._onSectionsResized, this);
     }
 
     // Connect the signal handlers for the new sections.
     if (value) {
-      value.sectionsResized.connect(this._onColumnsResized, this);
+      value.sectionsResized.connect(this._onSectionsResized, this);
     }
 
     // Update the internal sections reference.
@@ -217,20 +192,61 @@ class GridCanvas extends Widget {
   }
 
   /**
-   *
+   * Get the scroll X offset of the canvas.
    */
   get scrollX(): number {
     return this._scrollX;
   }
 
   /**
-   *
+   * Set the scroll X offset of the canvas.
+   */
+  set scrollX(value: number) {
+    this.scrollTo(value, this._scrollY);
+  }
+
+  /**
+   * Get the scroll Y offset of the canvas.
    */
   get scrollY(): number {
     return this._scrollY;
   }
 
-  scroll(x: number, y: number): void {
+  /**
+   * Set the scroll Y offset of the canvas.
+   */
+  set scrollY(value: number) {
+    this.scrollTo(this._scrollX, value);
+  }
+
+  /**
+   * Scroll the canvas by the specified delta.
+   *
+   * @param dx - The scroll X delta, in pixels.
+   *
+   * @param dy - The scroll Y delta, in pixels.
+   */
+  scrollBy(dx: number, dy: number): void {
+    this.scrollTo(this._scrollX + dx, this._scrollY + dy);
+  }
+
+  /**
+   * Scroll to the specified offset position.
+   *
+   * @param x - The scroll X offset, in pixels.
+   *
+   * @param y - The scroll Y offset, in pixels.
+   *
+   * #### Notes
+   * Negative values will be clamped to zero.
+   *
+   * Fractional values will be rounded to the nearest integer.
+   *
+   * The canvas can be scrolled beyond the bounds of the rendered grid
+   * if desired. Practically, there is no limit to the scroll position.
+   * Technically, the limit is `Number.MAX_SAFE_INTEGER`.
+   */
+  scrollTo(x: number, y: number): void {
 
   }
 
@@ -336,9 +352,7 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Draw the portion of the canvas contained within the given rect.
-   *
-   * The rect should be fully contained within the visible canvas.
+   * Draw the portion of the canvas contained within a rect.
    */
   private _draw(rx: number, ry: number, rw: number, rh: number): void {
     // Get the rendering context for the canvas.
@@ -348,81 +362,81 @@ class GridCanvas extends Widget {
     gc.fillStyle = '#D4D4D4';  // TODO make configurable.
     gc.fillRect(rx, ry, rw, rh);
 
-    // // Bail if there is no model, cells, or sections.
-    // if (!this._model || !this._rowSections || !this._columnSections) {
-    //   return;
-    // }
-
-    // Compute the upper right cell index.
-    let i1 = Private.columnAt(rx + this._scrollX);
-    let j1 = Private.rowAt(ry + this._scrollY);
-
-    // Compute the lower right cell index.
-    let i2 = Private.columnAt(rx + rw + this._scrollX - 1);
-    let j2 = Private.rowAt(ry + rh + this._scrollY - 1);
-
-    // Bail if the rect does not intersect any cells.
-    if ((i1 < 0 && i2 < 0) || (j1 < 0 && j2 < 0)) {
+    // Bail if there is no model or sections.
+    if (!this._model || !this._rowSections || !this._columnSections) {
       return;
     }
 
-    // Clamp the cells to the index limits.
-    if (i1 === -1) {
-      i1 = 0;
-    }
-    if (i2 === -1) {
-      i2 = 40;  // TODO use last column index.
-    }
-    if (j1 === -1) {
-      j1 = 0;
-    }
-    if (j2 === -1) {
-      j2 = 40;  // TODO use last column index.
+    // Compute the upper-left cell index.
+    let i1 = this._columnSections.sectionAt(rx + this._scrollX);
+    let j1 = this._rowSections.sectionAt(ry + this._scrollY);
+
+    // Bail if no cell intersects the origin. Since the canvas scroll
+    // position cannot be negative, no cells intersect the rect. This
+    // also handles the case where the data model is empty.
+    if (i1 < 0 || j1 < 0) {
+      return;
     }
 
-    i2 = Math.min(i2, 30);
-    j2 = Math.min(j2, 50);
+    // Compute the lower-right cell index.
+    let i2 = this._columnSections.sectionAt(rx + rw + this._scrollX - 1);
+    let j2 = this._rowSections.sectionAt(ry + rh + this._scrollY - 1);
+
+    // Clamp the cells to the model limits, if needed.
+    if (i2 < 0) {
+      i2 = this._model.columnCount() - 1;
+    }
+    if (j2 < 0) {
+      j2 = this._model.rowCount() - 1;
+    }
 
     // Compute the origin of the cell bounding box.
-    let x = Private.columnPosition(i1) - this._scrollX;
-    let y = Private.rowPosition(j1) - this._scrollY;
+    let x = this._columnSections.sectionPosition(i1) - this._scrollX;
+    let y = this._rowSections.sectionPosition(j1) - this._scrollY;
 
-    // Setup the dirty region.
-    let rgn = this._region;
-    rgn.x = x;
-    rgn.y = y;
-    rgn.width = 0;
-    rgn.height = 0;
-    rgn.startColumn = i1;
-    rgn.endColumn = i2;
-    rgn.startRow = j1;
-    rgn.endRow = j2;
+    // Setup the drawing region.
+    let rgn: Private.IRegion = {
+      x: x, y: y, width: 0, height: 0,
+      startColumn: i1, endColumn: i2,
+      startRow: j1, endRow: j2,
+      columnSizes: [], rowSizes: []
+    };
 
-    // Update the column sizes and bounding box width.
+    // Update the column sizes and total region width.
     for (let i = 0, n = i2 - i1 + 1; i < n; ++i) {
-      let s = Private.columnSize(i1 + i);
+      let s = this._columnSections.sectionSize(i1 + i);
       rgn.columnSizes[i] = s;
       rgn.width += s;
     }
 
-    // Update the row sizes and bounding box height.
+    // Update the row sizes and total region height.
     for (let j = 0, n = j2 - j1 + 1; j < n; ++j) {
-      let s = Private.rowSize(j1 + j);
+      let s = this._rowSections.sectionSize(j1 + j);
       rgn.rowSizes[j] = s;
       rgn.height += s;
     }
 
-    // Draw the cell contents from back to front.
+    // Draw the background behind the cells.
     this._drawBackground(gc, rgn);
+
+    // Draw the grid lines for the cells.
     this._drawGridLines(gc, rgn);
+
+    // Finally, draw the actual cell contents.
     this._drawCells(gc, rgn);
-    this._drawPaintRect(gc, rgn);
+
+    // temporary: draw the painted rect.
+    gc.beginPath();
+    gc.rect(rgn.x + 0.5, rgn.y + 0.5, rgn.width - 1, rgn.height - 1);
+    gc.lineWidth = 1;
+    gc.strokeStyle = Private.nextColor();
+    gc.stroke();
   }
 
   /**
-   * Draw the canvas background for the given rect.
+   * Draw the background for the given grid region.
    */
-  private _drawBackground(gc: CanvasRenderingContext2D, rgn: Private.DirtyRegion): void {
+  private _drawBackground(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
     // Setup the drawing style.
     gc.fillStyle = 'white';  // TODO make configurable
 
@@ -431,9 +445,9 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Draw the gridlines for the given rect.
+   * Draw the gridlines for the given grid region.
    */
-  private _drawGridLines(gc: CanvasRenderingContext2D, rgn: Private.DirtyRegion): void {
+  private _drawGridLines(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
     // Setup the drawing style.
     gc.lineWidth = 1;
     gc.lineCap = 'butt';
@@ -445,10 +459,9 @@ class GridCanvas extends Widget {
     // Draw the vertical grid lines.
     let y1 = rgn.y;
     let y2 = rgn.y + rgn.height;
-    let x = rgn.x - 0.5;  // align to pixel boundary
-    let nCols = rgn.endColumn - rgn.startColumn + 1;
-    for (let i = 0; i < nCols; ++i) {
-      x += rgn.columnSizes[i];
+    let colSizes = rgn.columnSizes;
+    for (let i = 0, x = rgn.x - 0.5, n = colSizes.length; i < n; ++i) {
+      x += colSizes[i];
       gc.moveTo(x, y1);
       gc.lineTo(x, y2);
     }
@@ -456,10 +469,9 @@ class GridCanvas extends Widget {
     // Draw the horizontal grid lines.
     let x1 = rgn.x;
     let x2 = rgn.x + rgn.width;
-    let y = rgn.y - 0.5;  // align to pixel boundary
-    let nRows = rgn.endRow - rgn.startRow + 1;
-    for (let j = 0; j < nRows; ++j) {
-      y += rgn.rowSizes[j];
+    let rowSizes = rgn.rowSizes;
+    for (let j = 0, y = rgn.y - 0.5, n = rowSizes.length; j < n; ++j) {
+      y += rowSizes[j];
       gc.moveTo(x1, y);
       gc.lineTo(x2, y);
     }
@@ -469,57 +481,35 @@ class GridCanvas extends Widget {
   }
 
   /**
-   *
+   * Draw the cells for the given grid region.
    */
-  private _drawCells(gc: CanvasRenderingContext2D, rgn: Private.DirtyRegion): void {
+  private _drawCells(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
     gc.fillStyle = 'black';
     gc.font = '10px sans-serif';
     let x = rgn.x;
-    let nRows = rgn.endRow - rgn.startRow + 1;
-    let nCols = rgn.endColumn - rgn.startColumn + 1;
-    for (let i = 0; i < nCols; ++i) {
+    let rowSizes = rgn.rowSizes;
+    let colSizes = rgn.columnSizes;
+    for (let i = 0, nCols = colSizes.length; i < nCols; ++i) {
       let y = rgn.y;
-      for (let j = 0; j < nRows; ++j) {
-        let h = rgn.rowSizes[j];
+      for (let j = 0, nRows = rowSizes.length; j < nRows; ++j) {
+        let h = rowSizes[j];
         gc.fillText(`Cell ${rgn.startRow + j}, ${rgn.startColumn + i}`, x, y + h / 2);
         y += h;
       }
-      x += rgn.columnSizes[i];
+      x += colSizes[i];
     }
   }
 
   /**
-   *
+   * Handle the `sectionsResized` signal of the grid sections.
    */
-  private _drawPaintRect(gc: CanvasRenderingContext2D, rgn: Private.DirtyRegion): void {
-    // let gc = this._canvas.getContext('2d');
-    // gc.beginPath();
-    // gc.rect(rx + 0.5, ry + 0.5, rw - 1, rh - 1);
-    // gc.lineWidth = 1;
-    // gc.strokeStyle = Private.nextColor();
-    // gc.stroke();
-  }
-
-  /**
-   *
-   */
-  private _onRowsResized(): void {
-
-  }
-
-  /**
-   *
-   */
-  private _onColumnsResized(): void {
-
-  }
+  private _onSectionsResized(sender: GridCanvas.ISections, range: GridCanvas.ISectionRange): void { }
 
   private _scrollX = 0;
   private _scrollY = 0;
   private _model: DataModel = null;
   private _buffer: HTMLCanvasElement;
   private _canvas: HTMLCanvasElement;
-  private _region = new Private.DirtyRegion();
   private _rowSections: GridCanvas.ISections = null;
   private _columnSections: GridCanvas.ISections = null;
 }
@@ -582,56 +572,56 @@ namespace Private {
    *
    */
   export
-  class DirtyRegion {
+  interface IRegion {
     /**
      *
      */
-    x = 0;
+    x: number;
 
     /**
      *
      */
-    y = 0;
+    y: number;
 
     /**
      *
      */
-    width = 0;
+    width: number;
 
     /**
      *
      */
-    height = 0;
+    height: number;
 
     /**
      *
      */
-    startRow = 0;
+    startRow: number;
 
     /**
      *
      */
-    endRow = 0;
+    endRow: number;
 
     /**
      *
      */
-    startColumn = 0;
+    startColumn: number;
 
     /**
      *
      */
-    endColumn = 0;
+    endColumn: number;
 
     /**
      *
      */
-    rowSizes: number[] = [];
+    rowSizes: number[];
 
     /**
      *
      */
-    columnSizes: number[] = [];
+    columnSizes: number[];
   }
 
   const colors = [
