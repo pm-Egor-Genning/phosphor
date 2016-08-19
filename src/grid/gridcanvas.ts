@@ -18,6 +18,10 @@ import {
 } from '../ui/widget';
 
 import {
+  ICellRenderer
+} from './cellrenderer';
+
+import {
   DataModel
 } from './datamodel';
 
@@ -278,8 +282,8 @@ class GridCanvas extends Widget {
       return;
     }
 
-    // Draw the entire canvas.
-    this._draw(0, 0, width, height);
+    // Paint the entire canvas.
+    this._paint(0, 0, width, height);
   }
 
   /**
@@ -336,21 +340,21 @@ class GridCanvas extends Widget {
     let right = Math.max(0, width - oldWidth);
     let bottom = Math.max(0, height - oldHeight);
 
-    // Draw the dirty region at the right, if needed.
+    // Paint the dirty region at the right, if needed.
     if (right > 0) {
-      this._draw(oldWidth, 0, right, height);
+      this._paint(oldWidth, 0, right, height);
     }
 
-    // Draw the dirty region at the bottom, if needed.
+    // Paint the dirty region at the bottom, if needed.
     if (bottom > 0) {
-      this._draw(0, oldHeight, width - right, bottom);
+      this._paint(0, oldHeight, width - right, bottom);
     }
   }
 
   /**
-   * Draw the portion of the canvas contained within a rect.
+   * Paint the portion of the canvas contained within a rect.
    */
-  private _draw(rx: number, ry: number, rw: number, rh: number): void {
+  private _paint(rx: number, ry: number, rw: number, rh: number): void {
     // Get the rendering context for the canvas.
     let gc = this._canvas.getContext('2d');
 
@@ -390,7 +394,7 @@ class GridCanvas extends Widget {
     let x = this._columnSections.sectionPosition(i1) - this._scrollX;
     let y = this._rowSections.sectionPosition(j1) - this._scrollY;
 
-    // Setup the drawing region.
+    // Setup the painting region.
     let rgn: Private.IRegion = {
       x: x, y: y, width: 0, height: 0,
       firstColumn: i1, lastColumn: i2,
@@ -412,14 +416,14 @@ class GridCanvas extends Widget {
       rgn.height += s;
     }
 
-    // Draw the background behind the cells.
-    this._drawBackground(gc, rgn);
+    // Paint the background behind the cells.
+    this._paintBackground(gc, rgn);
 
-    // Draw the grid lines for the cells.
-    this._drawGridLines(gc, rgn);
+    // Paint the grid lines for the cells.
+    this._paintGridLines(gc, rgn);
 
-    // Finally, draw the actual cell contents.
-    this._drawCells(gc, rgn);
+    // Finally, paint the actual cell contents.
+    this._paintCells(gc, rgn);
 
     // temporary: draw the painted rect.
     gc.beginPath();
@@ -430,10 +434,10 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Draw the background for the given grid region.
+   * Paint the background for the given grid region.
    */
-  private _drawBackground(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
-    // Setup the drawing style.
+  private _paintBackground(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
+    // Setup the rendering context.
     gc.fillStyle = 'white';  // TODO make configurable
 
     // Fill the dirty rect with the background color.
@@ -441,10 +445,10 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Draw the gridlines for the given grid region.
+   * Paint the gridlines for the given grid region.
    */
-  private _drawGridLines(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
-    // Setup the drawing style.
+  private _paintGridLines(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
+    // Setup the rendering context.
     gc.lineWidth = 1;
     gc.lineCap = 'butt';
     gc.strokeStyle = 'gray';  // TODO make configurable
@@ -477,9 +481,9 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Draw the cells for the given grid region.
+   * Paint the cells for the given grid region.
    */
-  private _drawCells(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
+  private _paintCells(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
     gc.fillStyle = 'black';
     gc.font = '10px sans-serif';
     let x = rgn.x;
@@ -510,6 +514,7 @@ class GridCanvas extends Widget {
   private _canvas: HTMLCanvasElement;
   private _rowSections: GridCanvas.ISections = null;
   private _columnSections: GridCanvas.ISections = null;
+  private _cellRenderers = Private.createRendererMap();
 }
 
 
@@ -687,6 +692,20 @@ namespace Private {
      * The sizes are ordered from `firstColumn` to `lastColumn`.
      */
     columnSizes: number[];
+  }
+
+  /**
+   * A type alias for a cell renderer map.
+   */
+  export
+  type RendererMap = { [name: string]: ICellRenderer };
+
+  /**
+   * Create a new renderer map for a grid canvas.
+   */
+  export
+  function createRendererMap(): RendererMap {
+    return Object.create(null);
   }
 
   const colors = [
