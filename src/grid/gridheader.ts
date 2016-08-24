@@ -17,16 +17,20 @@ import {
   DataModel
 } from './datamodel';
 
+import {
+  GridCanvas
+} from './gridcanvas';
+
 
 /**
  *
  */
 export
-abstract class GridHeader extends Widget {
+abstract class GridHeader extends Widget implements GridCanvas.ISections {
   /**
    *
    */
-  sectionsResized: ISignal<this, GridHeader.ISectionRange>;
+  sectionsResized: ISignal<this, GridCanvas.ISectionRange>;
 
   /**
    *
@@ -62,26 +66,3 @@ abstract class GridHeader extends Widget {
 
 //
 defineSignal(GridHeader.prototype, 'sectionsResized');
-
-
-/**
- *
- */
-export
-namespace GridHeader {
-  /**
-   *
-   */
-  export
-  interface ISectionRange {
-    /**
-     *
-     */
-    start: number;
-
-    /**
-     *
-     */
-    end: number;
-  }
-}

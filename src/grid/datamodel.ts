@@ -78,17 +78,17 @@ abstract class DataModel {
   /**
    *
    */
-  abstract rowHeaderData(row: number, out: DataModel.IData): void;
+  abstract rowHeaderData(row: number, out: DataModel.ICellData): void;
 
   /**
    *
    */
-  abstract columnHeaderData(column: number, out: DataModel.IData): void;
+  abstract columnHeaderData(column: number, out: DataModel.ICellData): void;
 
   /**
    *
    */
-  abstract cellData(row: number, column: number, out: DataModel.IData): void;
+  abstract cellData(row: number, column: number, out: DataModel.ICellData): void;
 }
 
 
@@ -114,7 +114,7 @@ namespace DataModel {
    *
    */
   export
-  interface IData {
+  interface ICellData {
     /**
      *
      */
@@ -128,7 +128,7 @@ namespace DataModel {
     /**
      *
      */
-    config: any;
+    options: any;
   }
 
   /**

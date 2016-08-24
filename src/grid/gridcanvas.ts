@@ -6,7 +6,7 @@
 | The full license is in the file LICENSE, distributed with this software.
 |----------------------------------------------------------------------------*/
 import {
-  Message
+  Message, sendMessage
 } from '../core/messaging';
 
 import {
@@ -14,11 +14,11 @@ import {
 } from '../core/signaling';
 
 import {
-  ResizeMessage, Widget, WidgetFlag
+  ResizeMessage, Widget, WidgetFlag, WidgetMessage
 } from '../ui/widget';
 
 import {
-  ICellRenderer
+  ICellConfig, ICellRenderer
 } from './cellrenderer';
 
 import {
@@ -48,7 +48,7 @@ const CANVAS_CLASS = 'p-GridCanvas-canvas';
 export
 class GridCanvas extends Widget {
   /**
-   * Construct a new gird canvas.
+   * Construct a new grid canvas.
    *
    * @param options - The options for initializing the canvas.
    */
@@ -57,12 +57,12 @@ class GridCanvas extends Widget {
     this.addClass(GRID_CANVAS_CLASS);
     this.setFlag(WidgetFlag.DisallowLayout);
 
-    // Create the offscreen rendering buffer.
+    // Create the off-screen rendering buffer.
     this._buffer = document.createElement('canvas');
     this._buffer.width = 0;
     this._buffer.height = 0;
 
-    // Create the onscreen rendering canvas.
+    // Create the on-screen rendering canvas.
     this._canvas = document.createElement('canvas');
     this._canvas.className = CANVAS_CLASS;
     this._canvas.width = 0;
@@ -251,24 +251,46 @@ class GridCanvas extends Widget {
   }
 
   /**
+   *
+   */
+  listCellRenderers(): string[] {
+    return Object.keys(this._cellRenderers);
+  }
+
+  /**
+   *
+   */
+  getCellRenderer(name: string): ICellRenderer {
+    return this._cellRenderers[name] || null;
+  }
+
+  /**
+   *
+   */
+  setCellRenderer(name: string, renderer: ICellRenderer): void {
+    this._cellRenderers[name] = renderer || null;
+    this.update();
+  }
+
+  /**
    * A message handler invoked on an `'after-show'` message.
    */
   protected onAfterShow(msg: Message): void {
-    this.update();
+    this.fit();
   }
 
   /**
    * A message handler invoked on an `'after-attach'` message.
    */
   protected onAfterAttach(msg: Message): void {
-    this.update();
+    this.fit();
   }
 
   /**
    * A message handler invoked on an `'update-request'` message.
    */
   protected onUpdateRequest(msg: Message): void {
-    // Do nothing if the canvas is not visible.
+    // Do nothing if the widget is not visible.
     if (!this.isVisible) {
       return;
     }
@@ -287,9 +309,37 @@ class GridCanvas extends Widget {
   }
 
   /**
+   * A message handler invoked on a `'fit-request'` message.
+   */
+  protected onFitRequest(msg: Message): void {
+    // Do nothing if the widget is not visible.
+    if (!this.isVisible) {
+      return;
+    }
+
+    // Measure the node size.
+    let width = Math.round(this.node.offsetWidth);
+    let height = Math.round(this.node.offsetHeight);
+
+    // Resize the canvas to fit.
+    this._canvas.width = width;
+    this._canvas.height = height;
+    this._canvas.style.width = `${width}px`;
+    this._canvas.style.height = `${height}px`;
+
+    // Repaint immediately.
+    sendMessage(this, WidgetMessage.UpdateRequest);
+  }
+
+  /**
    * A message handler invoked on a `'resize'` message.
    */
   protected onResize(msg: ResizeMessage): void {
+    // Bail early if the widget is not visible.
+    if (!this.isVisible) {
+      return;
+    }
+
     // Unpack the message data.
     let { width, height } = msg;
 
@@ -305,10 +355,6 @@ class GridCanvas extends Widget {
     width = Math.round(width);
     height = Math.round(height);
 
-    // Get the rendering contexts for the buffer and canvas.
-    let bufferGC = this._buffer.getContext('2d');
-    let canvasGC = this._canvas.getContext('2d');
-
     // Get the current size of the canvas.
     let oldWidth = this._canvas.width;
     let oldHeight = this._canvas.height;
@@ -316,16 +362,17 @@ class GridCanvas extends Widget {
     // Determine whether there is valid content to blit.
     let needBlit = oldWidth > 0 && oldHeight > 0 && width > 0 && height > 0;
 
-    // Resize the offscreen buffer to the new size.
+    // Resize the off-screen buffer to the new size.
     this._buffer.width = width;
     this._buffer.height = height;
 
     // Blit the old contents into the buffer, if needed.
     if (needBlit) {
+      let bufferGC = this._buffer.getContext('2d');
       bufferGC.drawImage(this._canvas, 0, 0);
     }
 
-    // Resize the onscreen canvas to the new size.
+    // Resize the on-screen canvas to the new size.
     this._canvas.width = width;
     this._canvas.height = height;
     this._canvas.style.width = `${width}px`;
@@ -333,6 +380,7 @@ class GridCanvas extends Widget {
 
     // Blit the buffer contents into the canvas, if needed.
     if (needBlit) {
+      let canvasGC = this._canvas.getContext('2d');
       canvasGC.drawImage(this._buffer, 0, 0);
     }
 
@@ -353,6 +401,9 @@ class GridCanvas extends Widget {
 
   /**
    * Paint the portion of the canvas contained within a rect.
+   *
+   * This is the primary painting entry point. This method invokes
+   * all of the other grid drawing methods in the correct order.
    */
   private _paint(rx: number, ry: number, rw: number, rh: number): void {
     // Get the rendering context for the canvas.
@@ -362,7 +413,7 @@ class GridCanvas extends Widget {
     gc.fillStyle = '#D4D4D4';  // TODO make configurable.
     gc.fillRect(rx, ry, rw, rh);
 
-    // Bail if there is no model or sections.
+    // Bail if there is no data model, row, or column sections.
     if (!this._model || !this._rowSections || !this._columnSections) {
       return;
     }
@@ -394,12 +445,11 @@ class GridCanvas extends Widget {
     let x = this._columnSections.sectionPosition(i1) - this._scrollX;
     let y = this._rowSections.sectionPosition(j1) - this._scrollY;
 
-    // Setup the painting region.
+    // Setup the drawing region.
     let rgn: Private.IRegion = {
       x: x, y: y, width: 0, height: 0,
-      firstColumn: i1, lastColumn: i2,
-      firstRow: j1, lastRow: j2,
-      columnSizes: [], rowSizes: []
+      firstRow: j1, firstColumn: i1,
+      rowSizes: [], columnSizes: []
     };
 
     // Update the column sizes and total region width.
@@ -416,14 +466,17 @@ class GridCanvas extends Widget {
       rgn.height += s;
     }
 
-    // Paint the background behind the cells.
-    this._paintBackground(gc, rgn);
+    // Draw the background behind the cells.
+    this._drawBackground(gc, rgn);
 
-    // Paint the grid lines for the cells.
-    this._paintGridLines(gc, rgn);
+    // Draw the grid lines for the cells.
+    this._drawGridLines(gc, rgn);
 
-    // Finally, paint the actual cell contents.
-    this._paintCells(gc, rgn);
+    // Finally, draw the actual cell contents.
+    let t1 = performance.now();
+    this._drawCells(gc, rgn);
+    let t2 = performance.now();
+    console.log('t', t2 - t1);
 
     // temporary: draw the painted rect.
     gc.beginPath();
@@ -434,9 +487,9 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Paint the background for the given grid region.
+   * Draw the background for the given grid region.
    */
-  private _paintBackground(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
+  private _drawBackground(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
     // Setup the rendering context.
     gc.fillStyle = 'white';  // TODO make configurable
 
@@ -445,9 +498,9 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Paint the gridlines for the given grid region.
+   * Draw the grid lines for the given grid region.
    */
-  private _paintGridLines(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
+  private _drawGridLines(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
     // Setup the rendering context.
     gc.lineWidth = 1;
     gc.lineCap = 'butt';
@@ -481,22 +534,111 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Paint the cells for the given grid region.
+   * Draw the cells for the given grid region.
    */
-  private _paintCells(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
-    gc.fillStyle = 'black';
-    gc.font = '10px sans-serif';
-    let x = rgn.x;
+  private _drawCells(gc: CanvasRenderingContext2D, rgn: Private.IRegion): void {
+    // Unpack common region variables.
+    let startX = rgn.x;
+    let startY = rgn.y;
+    let firstRow = rgn.firstRow;
+    let firstCol = rgn.firstColumn;
     let rowSizes = rgn.rowSizes;
     let colSizes = rgn.columnSizes;
-    for (let i = 0, nCols = colSizes.length; i < nCols; ++i) {
-      let y = rgn.y;
-      for (let j = 0, nRows = rowSizes.length; j < nRows; ++j) {
-        let h = rowSizes[j];
-        gc.fillText(`Cell ${rgn.firstRow + j}, ${rgn.firstColumn + i}`, x, y + h / 2);
-        y += h;
+    let rowCount = rowSizes.length;
+    let colCount = colSizes.length;
+
+    // Setup the common variables.
+    let rendererName = '';
+    let model = this._model;
+    let renderer: ICellRenderer = null;
+    let cellRenderers = this._cellRenderers;
+
+    // Setup the data model cell data object.
+    let data: DataModel.ICellData = {
+      value: null,
+      renderer: '',
+      options: null
+    };
+
+    // Setup the cell config object.
+    let config: ICellConfig = {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      row: -1,
+      column: -1,
+      value: null,
+      options: null
+    };
+
+    // Iterate over the columns in the region.
+    for (let i = 0, x = startX; i < colCount; ++i) {
+
+      // Lookup the column width.
+      let width = colSizes[i];
+
+      // Ignore the column if its width is zero.
+      if (width === 0) {
+        continue;
       }
-      x += colSizes[i];
+
+      // Compute the column index.
+      let column = i + firstCol;
+
+      // Iterate over the rows in the column.
+      for (let j = 0, y = startY; j < rowCount; ++j) {
+
+        // Lookup the row height.
+        let height = rowSizes[j];
+
+        // Ignore the row if its height is zero.
+        if (height === 0) {
+          continue;
+        }
+
+        // Compute the row index.
+        let row = j + firstRow;
+
+        // Reset the cell data parameters.
+        data.value = null;
+        data.renderer = 'default';
+        data.options = null;
+
+        // Load the cell data from the data model.
+        model.cellData(row, column, data);
+
+        // Fetch the new cell renderer if needed.
+        if (data.renderer !== rendererName) {
+          rendererName = data.renderer;
+          renderer = cellRenderers[rendererName];
+        }
+
+        // Bail if there is no renderer for the cell.
+        // TODO draw an error cell?
+        if (!renderer) {
+          continue;
+        }
+
+        // Set the cell config parameters.
+        config.x = x;
+        config.y = y;
+        config.width = width;
+        config.height = height;
+        config.row = row;
+        config.column = column;
+        config.value = data.value;
+        config.options = data.options;
+
+        // Paint the cell using the selected renderer.
+        renderer.paint(gc, config);
+
+        // Finally, increment the running Y coordinate.
+        y += height;
+      }
+
+      // Finally, increment the running X coordinate.
+      x += width;
     }
   }
 
@@ -665,31 +807,17 @@ namespace Private {
     firstRow: number;
 
     /**
-     * The index of the last row in the region.
-     */
-    lastRow: number;
-
-    /**
      * The index of the first column in the region.
      */
     firstColumn: number;
 
     /**
-     * The index of the last column in the region.
-     */
-    lastColumn: number;
-
-    /**
      * The sizes of the rows in the region.
-     *
-     * The sizes are ordered from `firstRow` to `lastRow`.
      */
     rowSizes: number[];
 
     /**
      * The sizes of the columns in the region.
-     *
-     * The sizes are ordered from `firstColumn` to `lastColumn`.
      */
     columnSizes: number[];
   }

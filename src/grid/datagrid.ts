@@ -14,6 +14,10 @@ import {
 } from '../ui/widget';
 
 import {
+  SimpleCellRenderer
+} from './cellrenderer';
+
+import {
   DataModel
 } from './datamodel';
 
@@ -37,6 +41,50 @@ const DATA_GRID_CLASS = 'p-DataGrid';
 const GRID_CANVAS_CLASS = 'p-DataGrid-gridCanvas';
 
 
+class TestHeader extends GridHeader {
+
+  constructor(public size: number) {
+    super();
+  }
+
+  sectionPosition(index: number): number {
+    return index * this.size;
+  }
+
+  sectionSize(index: number): number {
+    return this.size;
+  }
+
+  sectionAt(position: number): number {
+    return Math.floor(position / this.size);
+  }
+}
+
+
+class TestModel extends DataModel {
+
+  rowCount(): number {
+    return 40;
+  }
+
+  columnCount(): number {
+    return 20;
+  }
+
+  rowHeaderData(row: number, out: DataModel.ICellData): void {
+
+  }
+
+  columnHeaderData(column: number, out: DataModel.ICellData): void {
+
+  }
+
+  cellData(row: number, column: number, out: DataModel.ICellData): void {
+    out.value = `Cell (${row}, ${column})`;
+  }
+}
+
+
 /**
  *
  */
@@ -51,6 +99,10 @@ class DataGrid extends Widget {
 
     let canvas = new GridCanvas();
     canvas.addClass(GRID_CANVAS_CLASS);
+    canvas.rowSections = new TestHeader(20);
+    canvas.columnSections = new TestHeader(60);
+    canvas.model = new TestModel();
+    canvas.setCellRenderer('default', new SimpleCellRenderer());
 
     let layout = new BoxLayout();
     layout.addWidget(canvas);
