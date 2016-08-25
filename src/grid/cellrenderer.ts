@@ -117,12 +117,48 @@ class SimpleCellRenderer implements ICellRenderer {
    *
    */
   paint(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+    // Draw the cell background.
+    this.drawBackground(gc, config);
+
+    // Draw the cell content.
+    this.drawContent(gc, config);
+
+    // Finally, draw the cell border.
+    this.drawBorder(gc, config);
+  }
+
+  /**
+   *
+   */
+  protected drawBackground(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+
+  }
+
+  /**
+   *
+   */
+  protected drawContent(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+    // Bail if there is no cell value.
     if (!config.value) {
       return;
     }
-    // gc.fillStyle = 'red';
-    // gc.fillRect(config.x, config.y, config.width - 1, config.height - 1);
+
+    //
     gc.fillStyle = 'black';
-    gc.fillText(config.value.toString(), config.x + 2, config.y + 10);
+    gc.textBaseline = 'middle';
+
+    //
+    let text = config.value.toString();
+    let x = config.x + 2;
+    let y = config.y + config.height / 2;
+
+    gc.fillText(text, x, y);
+  }
+
+  /**
+   *
+   */
+  protected drawBorder(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+
   }
 }

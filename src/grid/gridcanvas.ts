@@ -473,10 +473,7 @@ class GridCanvas extends Widget {
     this._drawGridLines(gc, rgn);
 
     // Finally, draw the actual cell contents.
-    let t1 = performance.now();
     this._drawCells(gc, rgn);
-    let t2 = performance.now();
-    console.log('t', t2 - t1);
 
     // temporary: draw the painted rect.
     gc.beginPath();
