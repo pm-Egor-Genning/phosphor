@@ -18,7 +18,7 @@ import {
 } from '../ui/widget';
 
 import {
-  ICellConfig, ICellRenderer
+  ICellConfig, ICellRenderer, SimpleCellRenderer
 } from './cellrenderer';
 
 import {
@@ -44,6 +44,8 @@ const CANVAS_CLASS = 'p-GridCanvas-canvas';
  * User code will not normally interact with this class directly.
  *
  * The `DataGrid` class uses an instance of the class internally.
+ *
+ * This class is not designed to be subclassed.
  */
 export
 class GridCanvas extends Widget {
@@ -56,6 +58,9 @@ class GridCanvas extends Widget {
     super();
     this.addClass(GRID_CANVAS_CLASS);
     this.setFlag(WidgetFlag.DisallowLayout);
+
+    // Create the default cell renderer.
+    this._cellRenderers['default'] = new SimpleCellRenderer();
 
     // Create the off-screen rendering buffer.
     this._buffer = document.createElement('canvas');
@@ -75,6 +80,19 @@ class GridCanvas extends Widget {
 
     // Attach the canvas to the widget node.
     this.node.appendChild(this._canvas);
+  }
+
+  /**
+   * Dispose of the resources held by the widget.
+   */
+  dispose(): void {
+    this._model = null;
+    this._buffer = null;
+    this._canvas = null;
+    this._rowSections = null;
+    this._columnSections = null;
+    this._cellRenderers = null;
+    super.dispose();
   }
 
   /**
@@ -251,24 +269,34 @@ class GridCanvas extends Widget {
   }
 
   /**
+   * Get the cell renderer assigned to a given name.
    *
-   */
-  listCellRenderers(): string[] {
-    return Object.keys(this._cellRenderers);
-  }
-
-  /**
+   * @param name - The name of the cell renderer of interest.
    *
+   * @returns The cell renderer for the given name, or `undefined`.
    */
   getCellRenderer(name: string): ICellRenderer {
-    return this._cellRenderers[name] || null;
+    return this._cellRenderers[name];
   }
 
   /**
+   * Set the cell renderer for a given name.
    *
+   * @param name - The name of the cell renderer of interest.
+   *
+   * @param renderer - The cell renderer to assign to the name.
+   *
+   * #### Notes
+   * The given renderer will override the previous renderer for the
+   * specified name. If the renderer is `null` or `undefined`, the
+   * previous renderer will be removed.
    */
   setCellRenderer(name: string, renderer: ICellRenderer): void {
-    this._cellRenderers[name] = renderer || null;
+    if (renderer) {
+      this._cellRenderers[name] = renderer;
+    } else {
+      delete this._cellRenderers[name];
+    }
     this.update();
   }
 
@@ -327,7 +355,7 @@ class GridCanvas extends Widget {
     this._canvas.style.width = `${width}px`;
     this._canvas.style.height = `${height}px`;
 
-    // Repaint immediately.
+    // Repaint the canvas immediately.
     sendMessage(this, WidgetMessage.UpdateRequest);
   }
 
@@ -612,7 +640,7 @@ class GridCanvas extends Widget {
         }
 
         // Bail if there is no renderer for the cell.
-        // TODO draw an error cell?
+        // TODO: draw an error cell?
         if (!renderer) {
           continue;
         }
@@ -642,9 +670,7 @@ class GridCanvas extends Widget {
   /**
    * Handle the `sectionsResized` signal of the grid sections.
    */
-  private _onSectionsResized(sender: GridCanvas.ISections, range: GridCanvas.ISectionRange): void {
-
-  }
+  private _onSectionsResized(sender: GridCanvas.ISections, range: GridCanvas.ISectionRange): void { }
 
   private _scrollX = 0;
   private _scrollY = 0;

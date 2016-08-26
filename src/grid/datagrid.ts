@@ -14,10 +14,6 @@ import {
 } from '../ui/widget';
 
 import {
-  SimpleCellRenderer
-} from './cellrenderer';
-
-import {
   DataModel
 } from './datamodel';
 
@@ -102,7 +98,6 @@ class DataGrid extends Widget {
     canvas.rowSections = new TestHeader(20);
     canvas.columnSections = new TestHeader(60);
     canvas.model = new TestModel();
-    canvas.setCellRenderer('default', new SimpleCellRenderer());
 
     let layout = new BoxLayout();
     layout.addWidget(canvas);
