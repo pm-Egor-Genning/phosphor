@@ -265,7 +265,99 @@ class GridCanvas extends Widget {
    * Technically, the limit is `Number.MAX_SAFE_INTEGER`.
    */
   scrollTo(x: number, y: number): void {
+    // Coerce the desired scroll position to integers `>= 0`.
+    x = Math.max(0, Math.round(x));
+    y = Math.max(0, Math.round(y));
 
+    // Compute the delta scroll amount.
+    let dx = x - this._scrollX;
+    let dy = y - this._scrollY;
+
+    // Bail early if there is no effective scroll.
+    if (dx === 0 && dy === 0) {
+      return;
+    }
+
+    // Update the internal scroll position.
+    this._scrollX = x;
+    this._scrollY = y;
+
+    // Bail early if the widget is not visible.
+    if (!this.isVisible) {
+      return;
+    }
+
+    // Get the current size of the canvas.
+    let width = this._canvas.width;
+    let height = this._canvas.height;
+
+    // Paint everything if either delta is larger than the viewport.
+    if (Math.abs(dx) >= width || Math.abs(dy) >= height) {
+      this._paint(0, 0, width, height);
+      return;
+    }
+
+    // Setup the image blit variables.
+    let srcX = 0;
+    let srcY = 0;
+    let dstX = 0;
+    let dstY = 0;
+    let imgW = width;
+    let imgH = height;
+
+    // Setup the dirty margin variables.
+    let top = 0;
+    let left = 0;
+    let right = 0;
+    let bottom = 0;
+
+    // Compute the values for any horizontal scroll.
+    if (dx < 0) {
+      left = -dx;
+      dstX = left;
+      imgW = width - left;
+    } else if (dx > 0) {
+      right = dx;
+      srcX = right;
+      imgW = width - right;
+    }
+
+    // Compute the values for any vertical scroll.
+    if (dy < 0) {
+      top = -dy;
+      dstY = top;
+      imgH = height - top;
+    } else if (dy > 0) {
+      bottom = dy;
+      srcY = bottom;
+      imgH = height - bottom;
+    }
+
+    // Get the graphics context for the canvas.
+    let gc = this._canvas.getContext('2d');
+
+    // Blit the valid image data to the new location.
+    gc.drawImage(this._canvas, srcX, srcY, imgW, imgH, dstX, dstY, imgW, imgH);
+
+    // Paint the dirty region at the top, if needed.
+    if (top > 0) {
+      this._paint(0, 0, width, top);
+    }
+
+    // Paint the dirty region at the left, if needed.
+    if (left > 0) {
+      this._paint(0, top, left, height - top);
+    }
+
+    // Paint the dirty region at the right, if needed.
+    if (right > 0) {
+      this._paint(width - right, top, right, height - top);
+    }
+
+    // Paint the dirty region at the bottom, if needed.
+    if (bottom > 0) {
+      this._paint(left, height - bottom, width - left - right, bottom);
+    }
   }
 
   /**
