@@ -76,7 +76,7 @@ class TestModel extends DataModel {
   }
 
   cellData(row: number, column: number, out: DataModel.ICellData): void {
-    out.value = `Cell (${row}, ${column})`;
+    out.value = `(${row}, ${column})`;
   }
 }
 
@@ -103,6 +103,8 @@ class DataGrid extends Widget {
     layout.addWidget(canvas);
 
     this.layout = layout;
+
+    this._canvas = canvas;
   }
 
   /**
@@ -162,7 +164,41 @@ class DataGrid extends Widget {
     this._columnHeader = value;
   }
 
+  protected onAfterAttach(): void {
+    let doit = () => {
+      this._scrollIt();
+      requestAnimationFrame(doit);
+    }
+    requestAnimationFrame(doit);
+  }
+
+  private _scrollIt(): void {
+    let i = this._tick++;
+    if (i >= 4000) {
+      this._tick = i = 0;
+    }
+    if (i < 500) {
+      this._canvas.scrollBy(203, 0);
+    } else if (i < 1000) {
+      this._canvas.scrollBy(0, 203);
+    } else if (i < 1500) {
+      this._canvas.scrollBy(-203, 0);
+    } else if (i < 2000) {
+      this._canvas.scrollBy(0, -203);
+    } else if (i < 2500) {
+      this._canvas.scrollBy(203, 203);
+    } else if (i < 3000) {
+      this._canvas.scrollBy(203, -203);
+    } else if (i < 3500) {
+      this._canvas.scrollBy(-203, 203);
+    } else {
+      this._canvas.scrollBy(-203, -203);
+    }
+  }
+
+  private _tick = 0;
   private _model: DataModel = null;
   private _rowHeader: GridHeader = null;
   private _columnHeader: GridHeader = null;
+  private _canvas: GridCanvas;
 }
