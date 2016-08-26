@@ -349,7 +349,9 @@ class GridCanvas extends Widget {
     let width = Math.round(this.node.offsetWidth);
     let height = Math.round(this.node.offsetHeight);
 
-    // Resize the canvas to fit.
+    // Resize the canvas and buffer to fit.
+    this._buffer.width = width;
+    this._buffer.height = height;
     this._canvas.width = width;
     this._canvas.height = height;
     this._canvas.style.width = `${width}px`;
