@@ -25,6 +25,10 @@ import {
   DataModel
 } from './datamodel';
 
+import {
+  GridHeader
+} from './gridheader';
+
 
 /**
  * The class name added to grid canvas instance.
@@ -89,8 +93,8 @@ class GridCanvas extends Widget {
     this._model = null;
     this._buffer = null;
     this._canvas = null;
-    this._rowSections = null;
-    this._columnSections = null;
+    this._rowHeader = null;
+    this._columnHeader = null;
     this._cellRenderers = null;
     super.dispose();
   }
@@ -132,78 +136,88 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Get the row sections for the canvas.
+   * Get the row header for the canvas.
    */
-  get rowSections(): GridCanvas.ISections {
-    return this._rowSections;
+  get rowHeader(): GridHeader {
+    return this._rowHeader;
   }
 
   /**
-   * Set the row sections for the canvas.
+   * Set the row header for the canvas.
+   *
+   * #### Notes
+   * This is a "borrowed" reference to the header for the purposes of
+   * sizing the row sections. The canvas does not become the parent
+   * of the header.
    */
-  set rowSections(value: GridCanvas.ISections) {
+  set rowHeader(value: GridHeader) {
     // Null and undefined are treated the same.
     value = value || null;
 
-    // Lookup the old sections.
-    let old = this._rowSections;
+    // Lookup the old header.
+    let old = this._rowHeader;
 
-    // Do nothing if the sections do not change.
+    // Do nothing if the header does not change.
     if (old === value) {
       return;
     }
 
-    // Disconnect the signal handlers from the old sections.
+    // Disconnect the signal handlers from the old header.
     if (old) {
       old.sectionsResized.disconnect(this._onSectionsResized, this);
     }
 
-    // Connect the signal handlers for the new sections.
+    // Connect the signal handlers for the new header.
     if (value) {
       value.sectionsResized.connect(this._onSectionsResized, this);
     }
 
-    // Update the internal sections reference.
-    this._rowSections = value;
+    // Update the internal header reference.
+    this._rowHeader = value;
 
     // Schedule an update of the canvas.
     this.update();
   }
 
   /**
-   * Get the column sections for the canvas.
+   * Get the column header for the canvas.
    */
-  get columnSections(): GridCanvas.ISections {
-    return this._columnSections;
+  get columnHeader(): GridHeader {
+    return this._columnHeader;
   }
 
   /**
-   * Set the column sections for the canvas.
+   * Set the column header for the canvas.
+   *
+   * #### Notes
+   * This is a "borrowed" reference to the header for the purposes of
+   * sizing the column sections. The canvas does not become the parent
+   * of the header.
    */
-  set columnSections(value: GridCanvas.ISections) {
+  set columnHeader(value: GridHeader) {
     // Null and undefined are treated the same.
     value = value || null;
 
-    // Lookup the old sections.
-    let old = this._columnSections;
+    // Lookup the old header.
+    let old = this._columnHeader;
 
-    // Do nothing if the sections do not change.
+    // Do nothing if the header does not change.
     if (old === value) {
       return;
     }
 
-    // Disconnect the signal handlers from the old sections.
+    // Disconnect the signal handlers from the old header.
     if (old) {
       old.sectionsResized.disconnect(this._onSectionsResized, this);
     }
 
-    // Connect the signal handlers for the new sections.
+    // Connect the signal handlers for the new header.
     if (value) {
       value.sectionsResized.connect(this._onSectionsResized, this);
     }
 
-    // Update the internal sections reference.
-    this._columnSections = value;
+    // Update the internal header reference.
+    this._columnHeader = value;
 
     // Schedule an update of the canvas.
     this.update();
@@ -535,25 +549,25 @@ class GridCanvas extends Widget {
     gc.fillStyle = '#D4D4D4';  // TODO make configurable.
     gc.fillRect(rx, ry, rw, rh);
 
-    // Bail if there is no data model, row, or column sections.
-    if (!this._model || !this._rowSections || !this._columnSections) {
+    // Bail if there is no data model, row header, or column header.
+    if (!this._model || !this._rowHeader || !this._columnHeader) {
       return;
     }
 
     // Compute the upper-left cell index.
-    let i1 = this._columnSections.sectionAt(rx + this._scrollX);
-    let j1 = this._rowSections.sectionAt(ry + this._scrollY);
+    let i1 = this._columnHeader.sectionAt(rx + this._scrollX);
+    let j1 = this._rowHeader.sectionAt(ry + this._scrollY);
 
     // Bail if no cell intersects the origin. Since the canvas scroll
     // position cannot be negative, no cells intersect the rect. This
-    // also handles the case where the data model is empty.
+    // also handles the case where the row or column count is zero.
     if (i1 < 0 || j1 < 0) {
       return;
     }
 
     // Compute the lower-right cell index.
-    let i2 = this._columnSections.sectionAt(rx + rw + this._scrollX - 1);
-    let j2 = this._rowSections.sectionAt(ry + rh + this._scrollY - 1);
+    let i2 = this._columnHeader.sectionAt(rx + rw + this._scrollX - 1);
+    let j2 = this._rowHeader.sectionAt(ry + rh + this._scrollY - 1);
 
     // Clamp the cells to the model limits, if needed.
     if (i2 < 0) {
@@ -564,8 +578,8 @@ class GridCanvas extends Widget {
     }
 
     // Compute the origin of the cell bounding box.
-    let x = this._columnSections.sectionPosition(i1) - this._scrollX;
-    let y = this._rowSections.sectionPosition(j1) - this._scrollY;
+    let x = this._columnHeader.sectionPosition(i1) - this._scrollX;
+    let y = this._rowHeader.sectionPosition(j1) - this._scrollY;
 
     // Setup the drawing region.
     let rgn: Private.IRegion = {
@@ -576,14 +590,14 @@ class GridCanvas extends Widget {
 
     // Update the column sizes and total region width.
     for (let i = 0, n = i2 - i1 + 1; i < n; ++i) {
-      let s = this._columnSections.sectionSize(i1 + i);
+      let s = this._columnHeader.sectionSize(i1 + i);
       rgn.columnSizes[i] = s;
       rgn.width += s;
     }
 
     // Update the row sizes and total region height.
     for (let j = 0, n = j2 - j1 + 1; j < n; ++j) {
-      let s = this._rowSections.sectionSize(j1 + j);
+      let s = this._rowHeader.sectionSize(j1 + j);
       rgn.rowSizes[j] = s;
       rgn.height += s;
     }
@@ -597,7 +611,7 @@ class GridCanvas extends Widget {
     // Finally, draw the actual cell contents.
     this._drawCells(gc, rgn);
 
-    // temporary: draw the painted rect.
+    // Temporary: draw the painted rect for visual debugging.
     gc.beginPath();
     gc.rect(rgn.x + 0.5, rgn.y + 0.5, rgn.width - 1, rgn.height - 1);
     gc.lineWidth = 1;
@@ -764,15 +778,15 @@ class GridCanvas extends Widget {
   /**
    * Handle the `sectionsResized` signal of the grid sections.
    */
-  private _onSectionsResized(sender: GridCanvas.ISections, range: GridCanvas.ISectionRange): void { }
+  private _onSectionsResized(sender: GridHeader, range: GridHeader.ISectionRange): void { }
 
   private _scrollX = 0;
   private _scrollY = 0;
   private _model: DataModel = null;
   private _buffer: HTMLCanvasElement;
   private _canvas: HTMLCanvasElement;
-  private _rowSections: GridCanvas.ISections = null;
-  private _columnSections: GridCanvas.ISections = null;
+  private _rowHeader: GridHeader = null;
+  private _columnHeader: GridHeader = null;
   private _cellRenderers = Private.createRendererMap();
 }
 
@@ -788,89 +802,6 @@ namespace GridCanvas {
   export
   interface IOptions {
 
-  }
-
-  /**
-   * An object which represents a range of sections.
-   */
-  export
-  interface ISectionRange {
-    /**
-     * The first index in the range, inclusive.
-     *
-     * This must be an integer `<= last`.
-     */
-    first: number;
-
-    /**
-     * The last index in the range, inclusive.
-     *
-     * This must be an integer `>= first`.
-     */
-    last: number;
-  }
-
-  /**
-   * An object which controls the geometry of sections in a grid.
-   *
-   * #### Notes
-   * A grid canvas uses two of these objects to layout the cells
-   * in the grid: one for rows, and one for columns. The methods
-   * of these objects are called often, and should be as efficient
-   * as possible.
-   */
-  export
-  interface ISections {
-    /**
-     * A signal emitted when sections have been resized.
-     *
-     * The args object is the range of sections affected.
-     */
-    sectionsResized: ISignal<ISections, ISectionRange>;
-
-    /**
-     * Get the origin of a specific section.
-     *
-     * @params index - The index of the section of interest.
-     *
-     * @returns The integer position of the section in pixels,
-     *   or `-1` if the index is out of range.
-     *
-     * #### Notes
-     * The sections **must** be arranged in a dense sequence such that
-     * `sectionPosition(i) + sectionSize(i) === sectionPosition(i + 1)`.
-     *
-     * The position for index `0` **must** be `0`.
-     */
-    sectionPosition(index: number): number;
-
-    /**
-     * Get the size of a specific section.
-     *
-     * @params index - The index of the section of interest.
-     *
-     * @returns The integer size of the section in pixels, or
-     *   `-1` if the index is out of range.
-     *
-     * #### Notes
-     * The size of a valid index **must** be `>= 0`.
-     *
-     * If a section has a `0` size, it will not be rendered.
-     */
-    sectionSize(index: number): number;
-
-    /**
-     * Get the index of the section at a given position.
-     *
-     * @params position - The position of the section of interest.
-     *
-     * @returns The index of the section which intersects the
-     *   given position, or `-1` if the position is out of range.
-     *
-     * #### Notes
-     * The position will be an integer `>= 0`.
-     */
-    sectionAt(position: number): number;
   }
 }
 

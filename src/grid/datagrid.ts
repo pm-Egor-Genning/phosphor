@@ -95,8 +95,8 @@ class DataGrid extends Widget {
 
     let canvas = new GridCanvas();
     canvas.addClass(GRID_CANVAS_CLASS);
-    canvas.rowSections = new TestHeader(20);
-    canvas.columnSections = new TestHeader(60);
+    canvas.rowHeader = new TestHeader(20);
+    canvas.columnHeader = new TestHeader(60);
     canvas.model = new TestModel();
 
     let layout = new BoxLayout();
