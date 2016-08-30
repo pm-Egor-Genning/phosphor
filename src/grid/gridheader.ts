@@ -17,10 +17,6 @@ import {
   DataModel
 } from './datamodel';
 
-import {
-  GridCanvas
-} from './gridcanvas';
-
 
 /**
  *
