@@ -165,11 +165,11 @@ class DataGrid extends Widget {
   }
 
   protected onAfterAttach(): void {
-    let doit = () => {
-      this._scrollIt();
-      requestAnimationFrame(doit);
-    }
-    requestAnimationFrame(doit);
+    // let doit = () => {
+    //   this._scrollIt();
+    //   requestAnimationFrame(doit);
+    // }
+    // requestAnimationFrame(doit);
   }
 
   private _scrollIt(): void {
