@@ -305,6 +305,11 @@ class GridCanvas extends Widget {
     let width = this._canvas.width;
     let height = this._canvas.height;
 
+    // Bail early if the canvas is empty.
+    if (width === 0 || height === 0) {
+      return;
+    }
+
     // Paint everything if either delta is larger than the viewport.
     if (Math.abs(dx) >= width || Math.abs(dy) >= height) {
       this._paint(0, 0, width, height);
@@ -353,19 +358,19 @@ class GridCanvas extends Widget {
     // Blit the valid image data to the new location.
     gc.drawImage(this._canvas, srcX, srcY, imgW, imgH, dstX, dstY, imgW, imgH);
 
-    // Paint the dirty region at the top, if needed.
-    if (top > 0) {
-      this._paint(0, 0, width, top);
-    }
-
     // Paint the dirty region at the left, if needed.
     if (left > 0) {
-      this._paint(0, top, left, height - top);
+      this._paint(0, 0, left, height);
     }
 
     // Paint the dirty region at the right, if needed.
     if (right > 0) {
-      this._paint(width - right, top, right, height - top);
+      this._paint(width - right, 0, right, height);
+    }
+
+    // Paint the dirty region at the top, if needed.
+    if (top > 0) {
+      this._paint(left, 0, width - left - right, top);
     }
 
     // Paint the dirty region at the bottom, if needed.
@@ -433,7 +438,7 @@ class GridCanvas extends Widget {
     let width = this._canvas.width;
     let height = this._canvas.height;
 
-    // Do nothing if the canvas has zero area.
+    // Bail early if the canvas has zero area.
     if (width === 0 || height === 0) {
       return;
     }
@@ -540,6 +545,9 @@ class GridCanvas extends Widget {
    *
    * This is the primary painting entry point. This method invokes
    * all of the other grid drawing methods in the correct order.
+   *
+   * The rect should be expressed in positive viewport coordinates
+   * and have a nonzero area.
    */
   private _paint(rx: number, ry: number, rw: number, rh: number): void {
     // Get the rendering context for the canvas.
@@ -554,28 +562,35 @@ class GridCanvas extends Widget {
       return;
     }
 
+    // Fetch the row and column counts from the data model.
+    let rowCount = this._model.rowCount();
+    let colCount = this._model.columnCount();
+
+    // Bail if the data model is empty.
+    if (rowCount === 0 || colCount === 0) {
+      return;
+    }
+
     // Compute the upper-left cell index.
     let i1 = this._columnHeader.sectionAt(rx + this._scrollX);
     let j1 = this._rowHeader.sectionAt(ry + this._scrollY);
 
-    // Bail if no cell intersects the origin. Since the canvas scroll
-    // position cannot be negative, no cells intersect the rect. This
-    // also handles the case where the row or column count is zero.
+    // Bail if no cell intersects the origin. Since the scroll position
+    // cannot be negative, it means no cells intersect the dirty rect.
     if (i1 < 0 || j1 < 0) {
       return;
     }
 
-    // Compute the lower-right cell index.
-    let i2 = this._columnHeader.sectionAt(rx + rw + this._scrollX - 1);
-    let j2 = this._rowHeader.sectionAt(ry + rh + this._scrollY - 1);
+    // Compute the lower-right cell index. Note: the queried location
+    // is 1 pixel beyond the specified dirty rect. This allows border
+    // overdraw by neighboring cells when the dirty rect is aligned
+    // with the trailing cell boundaries.
+    let i2 = this._columnHeader.sectionAt(rx + rw + this._scrollX);
+    let j2 = this._rowHeader.sectionAt(ry + rh + this._scrollY);
 
-    // Clamp the cells to the model limits, if needed.
-    if (i2 < 0) {
-      i2 = this._model.columnCount() - 1;
-    }
-    if (j2 < 0) {
-      j2 = this._model.rowCount() - 1;
-    }
+    // Use the last cell index if the region is out of range.
+    i2 = i2 < 0 ? colCount - 1 : i2;
+    j2 = j2 < 0 ? rowCount - 1 : j2;
 
     // Compute the origin of the cell bounding box.
     let x = this._columnHeader.sectionPosition(i1) - this._scrollX;
@@ -588,19 +603,27 @@ class GridCanvas extends Widget {
       rowSizes: [], columnSizes: []
     };
 
-    // Update the column sizes and total region width.
+    // Fetch the column sizes and compute the total region width.
     for (let i = 0, n = i2 - i1 + 1; i < n; ++i) {
       let s = this._columnHeader.sectionSize(i1 + i);
       rgn.columnSizes[i] = s;
       rgn.width += s;
     }
 
-    // Update the row sizes and total region height.
+    // Fetch the row sizes and compute the total region height.
     for (let j = 0, n = j2 - j1 + 1; j < n; ++j) {
       let s = this._rowHeader.sectionSize(j1 + j);
       rgn.rowSizes[j] = s;
       rgn.height += s;
     }
+
+    // Save the context before applying the clipping rect.
+    gc.save();
+
+    // Apply the clipping rect for the specified dirty region.
+    gc.beginPath();
+    gc.rect(rx, ry, rw, rh);
+    gc.clip();
 
     // Draw the background behind the cells.
     this._drawBackground(gc, rgn);
@@ -608,15 +631,18 @@ class GridCanvas extends Widget {
     // Draw the grid lines for the cells.
     this._drawGridLines(gc, rgn);
 
-    // Finally, draw the actual cell contents.
+    // Draw the actual cell contents.
     this._drawCells(gc, rgn);
 
+    // Restore the context to remove the clipping rect.
+    gc.restore();
+
     // Temporary: draw the painted rect for visual debugging.
-    gc.beginPath();
-    gc.rect(rgn.x + 0.5, rgn.y + 0.5, rgn.width - 1, rgn.height - 1);
-    gc.lineWidth = 1;
-    gc.strokeStyle = Private.nextColor();
-    gc.stroke();
+    // gc.beginPath();
+    // gc.rect(rgn.x + 0.5, rgn.y + 0.5, rgn.width - 1, rgn.height - 1);
+    // gc.lineWidth = 1;
+    // gc.strokeStyle = Private.nextColor();
+    // gc.stroke();
   }
 
   /**
