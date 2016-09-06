@@ -10,10 +10,6 @@ import {
 } from '../core/messaging';
 
 import {
-  ISignal
-} from '../core/signaling';
-
-import {
   ResizeMessage, Widget, WidgetFlag, WidgetMessage
 } from '../ui/widget';
 
@@ -270,9 +266,11 @@ class GridViewport extends Widget {
    * @param y - The scroll Y offset, in pixels.
    *
    * #### Notes
-   * Negative values will be clamped to zero. There is no upper limit.
+   * Negative values will be clamped to zero.
    *
    * Fractional values will be rounded to the nearest integer.
+   *
+   * There is no practical upper limit to the scroll position.
    */
   scrollTo(x: number, y: number): void {
     // Coerce the desired scroll position to integers `>= 0`.
@@ -542,8 +540,9 @@ class GridViewport extends Widget {
    * This is the primary painting entry point. This method invokes
    * all of the other grid drawing methods in the correct order.
    *
-   * The rect should be expressed in positive viewport coordinates
-   * and have a nonzero area.
+   * This method makes the following assumptions which **must** hold:
+   * - The rect is expressed in integer viewport coordinates.
+   * - The rect fits entirely within the visible viewport.
    */
   private _paint(rx: number, ry: number, rw: number, rh: number): void {
     // Get the rendering context for the canvas.
@@ -584,7 +583,8 @@ class GridViewport extends Widget {
     let i2 = this._columnHeader.sectionAt(rx + rw + this._scrollX);
     let j2 = this._rowHeader.sectionAt(ry + rh + this._scrollY);
 
-    // Use the last cell index if the region is out of range.
+    // Use the last cell index if the region extends beyond the area
+    // defined by the last cell boundary.
     i2 = i2 < 0 ? colCount - 1 : i2;
     j2 = j2 < 0 ? rowCount - 1 : j2;
 
@@ -703,7 +703,6 @@ class GridViewport extends Widget {
     let colCount = colSizes.length;
 
     // Setup the common variables.
-    let rendererName = '';
     let model = this._model;
     let renderer: ICellRenderer = null;
     let cellRenderers = this._cellRenderers;
@@ -763,11 +762,8 @@ class GridViewport extends Widget {
         // Load the cell data from the data model.
         model.cellData(row, column, data);
 
-        // Fetch the new cell renderer if needed.
-        if (data.renderer !== rendererName) {
-          rendererName = data.renderer;
-          renderer = cellRenderers[rendererName];
-        }
+        // Fetch the new cell renderer.
+        renderer = cellRenderers[data.renderer];
 
         // Bail if there is no renderer for the cell.
         // TODO: draw an error cell?
@@ -788,11 +784,11 @@ class GridViewport extends Widget {
         // Paint the cell using the selected renderer.
         renderer.paint(gc, config);
 
-        // Finally, increment the running Y coordinate.
+        // Increment the running Y coordinate.
         y += height;
       }
 
-      // Finally, increment the running X coordinate.
+      // Increment the running X coordinate.
       x += width;
     }
   }
@@ -843,8 +839,7 @@ namespace Private {
      * The X coordinate of the dirty rect.
      *
      * This value corresponds to the viewport coordinates of the left
-     * edge of the first cell in the region. It is already adjusted
-     * for the grid scroll offset.
+     * edge of the first cell in the region.
      */
     x: number;
 
@@ -852,8 +847,7 @@ namespace Private {
      * The Y coordinate of the dirty rect.
      *
      * This value corresponds to the viewport coordinates of the top
-     * edge of the first cell in the region. It is already adjusted
-     * for the grid scroll offset.
+     * edge of the first cell in the region.
      */
     y: number;
 
