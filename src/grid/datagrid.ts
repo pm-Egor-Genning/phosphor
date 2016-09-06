@@ -18,12 +18,12 @@ import {
 } from './datamodel';
 
 import {
-  GridCanvas
-} from './gridcanvas';
-
-import {
   GridHeader
 } from './gridheader';
+
+import {
+  GridViewport
+} from './gridviewport';
 
 
 /**
@@ -34,7 +34,7 @@ const DATA_GRID_CLASS = 'p-DataGrid';
 /**
  *
  */
-const GRID_CANVAS_CLASS = 'p-DataGrid-gridCanvas';
+const VIEWPORT_CLASS = 'p-DataGrid-viewport';
 
 
 class TestHeader extends GridHeader {
@@ -93,18 +93,18 @@ class DataGrid extends Widget {
     super();
     this.addClass(DATA_GRID_CLASS);
 
-    let canvas = new GridCanvas();
-    canvas.addClass(GRID_CANVAS_CLASS);
-    canvas.rowHeader = new TestHeader(20);
-    canvas.columnHeader = new TestHeader(60);
-    canvas.model = new TestModel();
+    let viewport = new GridViewport();
+    viewport.addClass(VIEWPORT_CLASS);
+    viewport.rowHeader = new TestHeader(20);
+    viewport.columnHeader = new TestHeader(60);
+    viewport.model = new TestModel();
 
     let layout = new BoxLayout();
-    layout.addWidget(canvas);
+    layout.addWidget(viewport);
 
     this.layout = layout;
 
-    this._canvas = canvas;
+    this._viewport = viewport;
   }
 
   /**
@@ -164,41 +164,9 @@ class DataGrid extends Widget {
     this._columnHeader = value;
   }
 
-  protected onAfterAttach(): void {
-    // let doit = () => {
-    //   this._scrollIt();
-    //   requestAnimationFrame(doit);
-    // }
-    // requestAnimationFrame(doit);
-  }
-
-  private _scrollIt(): void {
-    let i = this._tick++;
-    if (i >= 4000) {
-      this._tick = i = 0;
-    }
-    if (i < 500) {
-      this._canvas.scrollBy(203, 0);
-    } else if (i < 1000) {
-      this._canvas.scrollBy(0, 203);
-    } else if (i < 1500) {
-      this._canvas.scrollBy(-203, 0);
-    } else if (i < 2000) {
-      this._canvas.scrollBy(0, -203);
-    } else if (i < 2500) {
-      this._canvas.scrollBy(203, 203);
-    } else if (i < 3000) {
-      this._canvas.scrollBy(203, -203);
-    } else if (i < 3500) {
-      this._canvas.scrollBy(-203, 203);
-    } else {
-      this._canvas.scrollBy(-203, -203);
-    }
-  }
-
   private _tick = 0;
   private _model: DataModel = null;
   private _rowHeader: GridHeader = null;
   private _columnHeader: GridHeader = null;
-  private _canvas: GridCanvas;
+  private _viewport: GridViewport;
 }

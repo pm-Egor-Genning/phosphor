@@ -31,18 +31,18 @@ import {
 
 
 /**
- * The class name added to grid canvas instance.
+ * The class name added to grid viewport instance.
  */
-const GRID_CANVAS_CLASS = 'p-GridCanvas';
+const GRID_VIEWPORT_CLASS = 'p-GridViewport';
 
 /**
- * The class name added to the canvas node of a grid canvas.
+ * The class name added to the canvas node of a grid viewport.
  */
-const CANVAS_CLASS = 'p-GridCanvas-canvas';
+const CANVAS_CLASS = 'p-GridViewport-canvas';
 
 
 /**
- * A widget which renders the cells of a grid.
+ * A widget which renders the visible cells of a grid.
  *
  * #### Notes
  * User code will not normally interact with this class directly.
@@ -52,15 +52,15 @@ const CANVAS_CLASS = 'p-GridCanvas-canvas';
  * This class is not designed to be subclassed.
  */
 export
-class GridCanvas extends Widget {
+class GridViewport extends Widget {
   /**
-   * Construct a new grid canvas.
+   * Construct a new grid viewport.
    *
-   * @param options - The options for initializing the canvas.
+   * @param options - The options for initializing the viewport.
    */
-  constructor(options: GridCanvas.IOptions = {}) {
+  constructor(options: GridViewport.IOptions = {}) {
     super();
-    this.addClass(GRID_CANVAS_CLASS);
+    this.addClass(GRID_VIEWPORT_CLASS);
     this.setFlag(WidgetFlag.DisallowLayout);
 
     // Create the default cell renderer.
@@ -82,7 +82,7 @@ class GridCanvas extends Widget {
     this._canvas.style.width = '0px';
     this._canvas.style.height = '0px';
 
-    // Attach the canvas to the widget node.
+    // Add the canvas to the widget node.
     this.node.appendChild(this._canvas);
   }
 
@@ -100,14 +100,14 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Get the data model rendered by the canvas.
+   * Get the data model rendered by the viewport.
    */
   get model(): DataModel {
     return this._model;
   }
 
   /**
-   * Set the data model rendered by the canvas.
+   * Set the data model rendered by the viewport.
    */
   set model(value: DataModel) {
     // Null and undefined are treated the same.
@@ -131,23 +131,23 @@ class GridCanvas extends Widget {
     // Update the internal model reference.
     this._model = value;
 
-    // Schedule an update of the canvas.
+    // Schedule an update of the viewport.
     this.update();
   }
 
   /**
-   * Get the row header for the canvas.
+   * Get the row header for the viewport.
    */
   get rowHeader(): GridHeader {
     return this._rowHeader;
   }
 
   /**
-   * Set the row header for the canvas.
+   * Set the row header for the viewport.
    *
    * #### Notes
    * This is a "borrowed" reference to the header for the purposes of
-   * sizing the row sections. The canvas does not become the parent
+   * sizing the row sections. The viewport does not become the parent
    * of the header.
    */
   set rowHeader(value: GridHeader) {
@@ -175,23 +175,23 @@ class GridCanvas extends Widget {
     // Update the internal header reference.
     this._rowHeader = value;
 
-    // Schedule an update of the canvas.
+    // Schedule an update of the viewport.
     this.update();
   }
 
   /**
-   * Get the column header for the canvas.
+   * Get the column header for the viewport.
    */
   get columnHeader(): GridHeader {
     return this._columnHeader;
   }
 
   /**
-   * Set the column header for the canvas.
+   * Set the column header for the viewport.
    *
    * #### Notes
    * This is a "borrowed" reference to the header for the purposes of
-   * sizing the column sections. The canvas does not become the parent
+   * sizing the column sections. The viewport does not become the parent
    * of the header.
    */
   set columnHeader(value: GridHeader) {
@@ -219,40 +219,40 @@ class GridCanvas extends Widget {
     // Update the internal header reference.
     this._columnHeader = value;
 
-    // Schedule an update of the canvas.
+    // Schedule an update of the viewport.
     this.update();
   }
 
   /**
-   * Get the scroll X offset of the canvas.
+   * Get the scroll X offset of the viewport.
    */
   get scrollX(): number {
     return this._scrollX;
   }
 
   /**
-   * Set the scroll X offset of the canvas.
+   * Set the scroll X offset of the viewport.
    */
   set scrollX(value: number) {
     this.scrollTo(value, this._scrollY);
   }
 
   /**
-   * Get the scroll Y offset of the canvas.
+   * Get the scroll Y offset of the viewport.
    */
   get scrollY(): number {
     return this._scrollY;
   }
 
   /**
-   * Set the scroll Y offset of the canvas.
+   * Set the scroll Y offset of the viewport.
    */
   set scrollY(value: number) {
     this.scrollTo(this._scrollX, value);
   }
 
   /**
-   * Scroll the canvas by the specified delta.
+   * Scroll the viewport by the specified delta.
    *
    * @param dx - The scroll X delta, in pixels.
    *
@@ -270,13 +270,9 @@ class GridCanvas extends Widget {
    * @param y - The scroll Y offset, in pixels.
    *
    * #### Notes
-   * Negative values will be clamped to zero.
+   * Negative values will be clamped to zero. There is no upper limit.
    *
    * Fractional values will be rounded to the nearest integer.
-   *
-   * The canvas can be scrolled beyond the bounds of the rendered grid
-   * if desired. Practically, there is no limit to the scroll position.
-   * Technically, the limit is `Number.MAX_SAFE_INTEGER`.
    */
   scrollTo(x: number, y: number): void {
     // Coerce the desired scroll position to integers `>= 0`.
@@ -468,7 +464,7 @@ class GridCanvas extends Widget {
     this._canvas.style.width = `${width}px`;
     this._canvas.style.height = `${height}px`;
 
-    // Repaint the canvas immediately.
+    // Repaint the viewport immediately.
     sendMessage(this, WidgetMessage.UpdateRequest);
   }
 
@@ -541,7 +537,7 @@ class GridCanvas extends Widget {
   }
 
   /**
-   * Paint the portion of the canvas contained within a rect.
+   * Paint the portion of the viewport contained within a rect.
    *
    * This is the primary painting entry point. This method invokes
    * all of the other grid drawing methods in the correct order.
@@ -818,12 +814,12 @@ class GridCanvas extends Widget {
 
 
 /**
- * The namespace for the `GridCanvas` class statics.
+ * The namespace for the `GridViewport` class statics.
  */
 export
-namespace GridCanvas {
+namespace GridViewport {
   /**
-   * An options object for initializing a grid canvas.
+   * An options object for initializing a grid viewport.
    */
   export
   interface IOptions {
@@ -846,7 +842,7 @@ namespace Private {
     /**
      * The X coordinate of the dirty rect.
      *
-     * This value corresponds to the canvas coordinates of the left
+     * This value corresponds to the viewport coordinates of the left
      * edge of the first cell in the region. It is already adjusted
      * for the grid scroll offset.
      */
@@ -855,7 +851,7 @@ namespace Private {
     /**
      * The Y coordinate of the dirty rect.
      *
-     * This value corresponds to the canvas coordinates of the top
+     * This value corresponds to the viewport coordinates of the top
      * edge of the first cell in the region. It is already adjusted
      * for the grid scroll offset.
      */
@@ -903,7 +899,7 @@ namespace Private {
   type RendererMap = { [name: string]: ICellRenderer };
 
   /**
-   * Create a new renderer map for a grid canvas.
+   * Create a new renderer map for a grid viewport.
    */
   export
   function createRendererMap(): RendererMap {
