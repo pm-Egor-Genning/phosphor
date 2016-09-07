@@ -8,85 +8,16 @@
 
 
 /**
- * An object which holds the configuration data for a cell.
- */
-export
-interface ICellConfig {
-  /**
-   * The X coordinate of the bounding rectangle.
-   *
-   * #### Notes
-   * This is the visible canvas coordinate of the rect, and is aligned
-   * to the cell boundary. It may be negative if the cell is partially
-   * visible.
-   */
-  x: number;
-
-  /**
-   * The Y coordinate of the bounding rectangle.
-   *
-   * #### Notes
-   * This is the visible canvas coordinate of the rect, and is aligned
-   * to the cell boundary. It may be negative if the cell is partially
-   * visible.
-   */
-  y: number;
-
-  /**
-   * The width of the bounding rectangle.
-   *
-   * #### Notes
-   * This value is aligned to the cell boundary.
-   */
-  width: number;
-
-  /**
-   * The width of the bounding rectangle.
-   *
-   * #### Notes
-   * This value is aligned to the cell boundary.
-   */
-  height: number;
-
-  /**
-   * The row index of the cell.
-   */
-  row: number;
-
-  /**
-   * The column index of the cell.
-   */
-  column: number;
-
-  /**
-   * The data value for the cell.
-   *
-   * #### Notes
-   * This value is provided by the data model.
-   */
-  value: any;
-
-  /**
-   * The renderer options for the cell.
-   *
-   * #### Notes
-   * This value is provided by the data model.
-   */
-  options: any;
-}
-
-
-/**
  * An object which renders the contents of a grid cell.
  *
  * #### Notes
  * A single cell renderer instance can be used to render the contents
  * of multiple cells, as well as the contents of header cells. A cell
- * renderer is registered by name with a given grid and/or header and
- * is specified for use by the associated data model.
+ * renderer is registered by name with a grid or header and specified
+ * for use by an associated data model.
  */
 export
-interface ICellRenderer {
+abstract class CellRenderer {
   /**
    * Paint the contents for the specified cell.
    *
@@ -98,13 +29,89 @@ interface ICellRenderer {
    * The renderer should treat the configuration data as read-only.
    *
    * Saving and restoring the graphics context state is an expensive
-   * operation, which should be avoided when possible. However, the
-   * renderer **must** reset clipping regions and transforms before
-   * returning.
+   * operation, which should be avoided when possible.
+   *
+   * The renderer **must** reset any applied clipping regions and
+   * transforms before returning.
    *
    * The render **must not** draw outside of the bounding rectangle.
    */
-  paint(gc: CanvasRenderingContext2D, config: ICellConfig): void;
+  abstract paint(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
+}
+
+
+/**
+ * The namespace for the `CellRenderer` class statics.
+ */
+export
+namespace CellRenderer {
+  /**
+   * An object which holds the configuration data for a cell.
+   */
+  export
+  interface IConfig {
+    /**
+     * The X coordinate of the bounding rectangle.
+     *
+     * #### Notes
+     * This is the viewport coordinate of the rect, and is aligned to
+     * the cell boundary. It may be negative if the cell is partially
+     * visible.
+     */
+    x: number;
+
+    /**
+     * The Y coordinate of the bounding rectangle.
+     *
+     * #### Notes
+     * This is the viewport coordinate of the rect, and is aligned to
+     * the cell boundary. It may be negative if the cell is partially
+     * visible.
+     */
+    y: number;
+
+    /**
+     * The width of the bounding rectangle.
+     *
+     * #### Notes
+     * This value is aligned to the cell boundary.
+     */
+    width: number;
+
+    /**
+     * The width of the bounding rectangle.
+     *
+     * #### Notes
+     * This value is aligned to the cell boundary.
+     */
+    height: number;
+
+    /**
+     * The row index of the cell.
+     */
+    row: number;
+
+    /**
+     * The column index of the cell.
+     */
+    column: number;
+
+    /**
+     * The data value for the cell.
+     *
+     * #### Notes
+     * This value is provided by the data model.
+     */
+    value: any;
+
+    /**
+     * The renderer options for the cell.
+     *
+     * #### Notes
+     * This value is provided by the data model.
+     */
+    options: any;
+  }
 }
 
 
@@ -112,11 +119,11 @@ interface ICellRenderer {
  *
  */
 export
-class SimpleCellRenderer implements ICellRenderer {
+class SimpleCellRenderer extends CellRenderer {
   /**
    *
    */
-  paint(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+  paint(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
     // Draw the cell background.
     this.drawBackground(gc, config);
 
@@ -130,14 +137,14 @@ class SimpleCellRenderer implements ICellRenderer {
   /**
    *
    */
-  protected drawBackground(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+  protected drawBackground(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
 
   }
 
   /**
    *
    */
-  protected drawContent(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+  protected drawContent(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
     // Bail if there is no cell value.
     if (!config.value) {
       return;
@@ -158,7 +165,7 @@ class SimpleCellRenderer implements ICellRenderer {
   /**
    *
    */
-  protected drawBorder(gc: CanvasRenderingContext2D, config: ICellConfig): void {
+  protected drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
 
   }
 }

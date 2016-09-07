@@ -14,7 +14,7 @@ import {
 } from '../ui/widget';
 
 import {
-  ICellConfig, ICellRenderer, SimpleCellRenderer
+  CellRenderer, SimpleCellRenderer
 } from './cellrenderer';
 
 import {
@@ -380,7 +380,7 @@ class GridViewport extends Widget {
    *
    * @returns The cell renderer for the given name, or `undefined`.
    */
-  getCellRenderer(name: string): ICellRenderer {
+  getCellRenderer(name: string): CellRenderer {
     return this._cellRenderers[name];
   }
 
@@ -396,7 +396,7 @@ class GridViewport extends Widget {
    * specified name. If the renderer is `null` or `undefined`, the
    * previous renderer will be removed.
    */
-  setCellRenderer(name: string, renderer: ICellRenderer): void {
+  setCellRenderer(name: string, renderer: CellRenderer): void {
     if (renderer) {
       this._cellRenderers[name] = renderer;
     } else {
@@ -704,7 +704,7 @@ class GridViewport extends Widget {
 
     // Setup the common variables.
     let model = this._model;
-    let renderer: ICellRenderer = null;
+    let renderer: CellRenderer = null;
     let cellRenderers = this._cellRenderers;
 
     // Setup the data model cell data object.
@@ -715,7 +715,7 @@ class GridViewport extends Widget {
     };
 
     // Setup the cell config object.
-    let config: ICellConfig = {
+    let config: CellRenderer.IConfig = {
       x: 0,
       y: 0,
       width: 0,
@@ -890,7 +890,7 @@ namespace Private {
    * A type alias for a cell renderer map.
    */
   export
-  type RendererMap = { [name: string]: ICellRenderer };
+  type RendererMap = { [name: string]: CellRenderer };
 
   /**
    * Create a new renderer map for a grid viewport.
