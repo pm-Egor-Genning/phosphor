@@ -59,7 +59,7 @@ class GridViewport extends Widget {
     this.addClass(GRID_VIEWPORT_CLASS);
     this.setFlag(WidgetFlag.DisallowLayout);
 
-    // Create the default cell renderer.
+    // Create the default cell renderer. TODO `default` or `[default]`?
     this._cellRenderers['text'] = new TextCellRenderer();
 
     // Create the off-screen rendering buffer.
@@ -91,6 +91,7 @@ class GridViewport extends Widget {
     this._canvas = null;
     this._rowHeader = null;
     this._columnHeader = null;
+    this._dirtyRegion = null;
     this._cellRenderers = null;
     super.dispose();
   }
