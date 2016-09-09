@@ -824,6 +824,14 @@ namespace Private {
     columnCount = 0;
 
     /**
+     * The number of cells to be rendered in the region.
+     *
+     * This will be different from `rowCount * columnCount` when the
+     * data model specifies renderers which have not be registered.
+     */
+    renderCount = 0;
+
+    /**
      * The visible row indices in the region.
      *
      * Rows with zero size are omitted.
@@ -858,14 +866,6 @@ namespace Private {
      * Only the first `columnCount` elements are valid.
      */
     columnSizes: number[] = [];
-
-    /**
-     * The number of cells to be rendered in the region.
-     *
-     * This will be different from `rowCount * columnCount` when the
-     * data model specifies renderers which have not be registered.
-     */
-    renderCount = 0;
 
     /**
      * The cell renderers for the cells in the region.
