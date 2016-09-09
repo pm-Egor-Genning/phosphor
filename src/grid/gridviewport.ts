@@ -551,10 +551,21 @@ class GridViewport extends Widget {
       return;
     }
 
-    // Run the actual paint routine from within the recursion guard.
-    this._inPaint = true;
-    this._paintImpl(rx, ry, rw, rh);
-    this._inPaint = false;
+    // Get the rendering context for the canvas.
+    let gc = this._canvas.getContext('2d');
+
+    // Clip to the dirty rect and execute the actual paint routine.
+    try {
+      gc.save();
+      gc.beginPath();
+      gc.rect(rx, ry, rw, rh);
+      gc.clip();
+      this._inPaint = true;
+      this.__paint(rx, ry, rw, rh);
+    } finally {
+      this._inPaint = false;
+      gc.restore();
+    }
   }
 
   /**
@@ -562,7 +573,7 @@ class GridViewport extends Widget {
    *
    * This should **only** be called by the `_paint` method.
    */
-  private _paintImpl(rx: number, ry: number, rw: number, rh: number): void {
+  private __paint(rx: number, ry: number, rw: number, rh: number): void {
     // Get the rendering context for the canvas.
     let gc = this._canvas.getContext('2d');
 
@@ -614,6 +625,7 @@ class GridViewport extends Widget {
     rgn.height = 0;
     rgn.rowCount = 0;
     rgn.columnCount = 0;
+    rgn.renderCount = 0;
 
     // Update the region with the visible column geometry.
     for (let i = 0, n = i2 - i1 + 1; i < n; ++i) {
@@ -627,7 +639,7 @@ class GridViewport extends Widget {
       rgn.width += s;
     }
 
-    // Bail early if there are no visible columns.
+    // Bail if there are no visible columns.
     if (rgn.columnCount === 0) {
       return;
     }
@@ -644,53 +656,88 @@ class GridViewport extends Widget {
       rgn.height += s;
     }
 
-    // Bail early if there are no visible rows.
+    // Bail if there are no visible rows.
     if (rgn.rowCount === 0) {
       return;
     }
 
-    // Ensure sufficient cell data objects are available.
-    Private.ensureSufficientCellData(rgn);
+    // Ensure there is a sufficient number of render configs.
+    let maxConfigCount = rgn.rowCount * rgn.columnCount;
+    while (rgn.rendererConfigs.length < maxConfigCount) {
+      rgn.rendererConfigs.push(Private.createEmptyConfig());
+    }
 
-    // Load the data for the cells in the region.
-    for (let i = 0, k = 0; i < rgn.columnCount; ++i) {
-      for (let j = 0; j < rgn.rowCount; ++j, ++k) {
-        let data = rgn.cellData[k];
+    // Create a cell data object for querying the data model.
+    let data = Private.createEmptyData();
+
+    // Iterate over the columns in the region.
+    for (let i = 0, x = rgn.x; i < rgn.columnCount; ++i) {
+
+      // Lookup the column geometry.
+      let column = rgn.columns[i];
+      let width = rgn.columnSizes[i];
+
+      // Iterate over the rows in the column.
+      for (let j = 0, y = rgn.y; j < rgn.rowCount; ++j) {
+
+        // Lookup the row geometry.
+        let row = rgn.rows[j];
+        let height = rgn.rowSizes[j];
+
+        // Reset the cell data values.
         data.value = null;
         data.options = null;
         data.renderer = 'text'; // TODO: 'default' or '[default]'?
-        this._model.cellData(rgn.rows[j], rgn.columns[i], data);
+
+        // Fetch the model data for the cell.
+        this._model.cellData(row, column, data);
+
+        // Fetch the new cell renderer.
+        let renderer = this._cellRenderers[data.renderer];
+
+        // Do nothing if there is no renderer for the cell.
+        // TODO: use an error cell renderer instead?
+        if (!renderer) {
+          continue;
+        }
+
+        // Update the region with the renderer for the cell.
+        let k = rgn.renderCount++;
+        rgn.cellRenderers[k] = renderer;
+
+        // Update the cell renderer config.
+        let config = rgn.rendererConfigs[k];
+        config.x = x;
+        config.y = y;
+        config.width = width;
+        config.height = height;
+        config.row = row;
+        config.column = column;
+        config.value = data.value;
+        config.options = data.options;
+
+        // Increment the running Y coordinate.
+        y += height;
       }
+
+      // Increment the running X coordinate.
+      x += width;
     }
 
-    // Save the context before applying the clipping rect.
-    gc.save();
-
-    // Apply the clipping rect for the actual dirty region.
-    gc.beginPath();
-    gc.rect(rx, ry, rw, rh);
-    gc.clip();
-
-    // Draw the background behind all cells.
+    // Draw the grid background.
     Private.drawGridBackground(gc, rgn);
 
-    // Draw the background of each cell.
-    Private.drawCellBackgrounds(gc, rgn, this._cellRenderers);
+    // Draw the cell backgrounds.
+    Private.drawCellBackgrounds(gc, rgn);
 
-    // Draw the content of each cell.
-    Private.drawCellContents(gc, rgn, this._cellRenderers);
+    // Draw the cell contents.
+    Private.drawCellContents(gc, rgn);
 
     // Draw the grid lines.
     Private.drawGridLines(gc, rgn);
 
-    // Draw the border of each cell.
-    Private.drawCellBorders(gc, rgn, this._cellRenderers);
-
-    // Restore the context to remove the clipping rect.
-    gc.restore();
-
-    // Temporary: draw the painted rect for visual debugging.
-    Private.drawRegionRect(gc, rgn);
+    // Draw the cell borders.
+    Private.drawCellBorders(gc, rgn);
   }
 
   /**
@@ -738,28 +785,28 @@ namespace Private {
   export
   class Region {
     /**
-     * The X coordinate of the dirty rect.
+     * The X coordinate of the dirty region.
      *
      * This is the left coordinate of the first visible cell.
      */
     x = 0;
 
     /**
-     * The Y coordinate of the dirty rect.
+     * The Y coordinate of the dirty region.
      *
      * This is the top coordinate of the first visible cell.
      */
     y = 0;
 
     /**
-     * The width of the dirty rect.
+     * The width of the dirty region.
      *
      * This is the total width of all visible columns in the region.
      */
     width = 0;
 
     /**
-     * The height of the dirty rect.
+     * The height of the dirty region.
      *
      * This is the total height of all visible rows in the region.
      */
@@ -776,7 +823,7 @@ namespace Private {
     columnCount = 0;
 
     /**
-     * The indices of the visible rows in the region.
+     * The visible row indices in the region.
      *
      * Rows with zero size are omitted.
      *
@@ -785,7 +832,7 @@ namespace Private {
     rows: number[] = [];
 
     /**
-     * The indices of the visible columns in the region.
+     * The visible column indices in the region.
      *
      * Columns with zero size are omitted.
      *
@@ -812,13 +859,26 @@ namespace Private {
     columnSizes: number[] = [];
 
     /**
-     * The data for the cells in the region, in column-major order.
+     * The number of cells to be rendered in the region.
      *
-     * Cells with zero size are omitted.
-     *
-     * Only the first `rowCount * columnCount` elements are valid.
+     * This will be different from `rowCount * columnCount` when the
+     * data model specifies renderers which have not be registered.
      */
-    cellData: DataModel.ICellData[] = [];
+    renderCount = 0;
+
+    /**
+     * The cell renderers for the cells in the region.
+     *
+     * Only the first `renderCount` elements are valid.
+     */
+    cellRenderers: CellRenderer[] = [];
+
+    /**
+     * The renderer configs for the cells in the region.
+     *
+     * Only the first `renderCount` elements are valid.
+     */
+    rendererConfigs: CellRenderer.IConfig[] = [];
   }
 
   /**
@@ -836,23 +896,22 @@ namespace Private {
   }
 
   /**
-   *
+   * Create an empty cell data object.
    */
   export
-  interface
+  function createEmptyData(): DataModel.ICellData {
+    return { value: null, renderer: '', options: null };
+  }
+
   /**
-   * Ensure the region has as sufficient number of cell data objects.
-   *
-   * This fills the data buffer with empty cell data objects until
-   * there are enough to support the number of cells in the region.
+   * Create an empty cell renderer config.
    */
   export
-  function ensureSufficientCellData(rgn: Region): void {
-    let data = rgn.cellData;
-    let count = rgn.rowCount * rgn.columnCount;
-    while (data.length < count) {
-      data.push({ value: null, options: null, renderer: '' });
-    }
+  function createEmptyConfig(): CellRenderer.IConfig {
+    return {
+      x: 0, y: 0, width: 0, height: 0,
+      row: 0, column: 0, value: null, options: null
+    };
   }
 
   /**
@@ -910,92 +969,35 @@ namespace Private {
   }
 
   /**
-   *
+   * Draw the backgrounds of the cells in the given region.
    */
   export
-  type CellDrawMethod = 'drawBackground' | 'drawContent' | 'drawBorder';
-
-  /**
-   *
-   */
-  export
-  function drawCells(gc: CanvasRenderingContext2D, rgn: Region, renderers: RendererMap, method: CellDrawMethod): void {
-    // Setup the cell config object.
-    let config: CellRenderer.IConfig = {
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-      row: -1,
-      column: -1,
-      value: null,
-      options: null
-    };
-
-    // Iterate over the columns in the region.
-    for (let i = 0, k = 0, x = rgn.x; i < rgn.columnCount; ++i) {
-
-      // Lookup the column index and width.
-      let column = rgn.columns[i];
-      let width = rgn.columnSizes[i];
-
-      // Iterate over the rows in the column.
-      for (let j = 0, y = rgn.y; j < rgn.rowCount; ++j, ++k) {
-
-        // Lookup the cell data object.
-        let data = rgn.cellData[k];
-
-        // Fetch the new cell renderer.
-        renderer = cellRenderers[data.renderer];
-
-        // Bail if there is no renderer for the cell.
-        // TODO: draw an error cell?
-        if (!renderer) {
-          continue;
-        }
-
-        // Lookup the row index and height.
-        let row = rgn.rows[j];
-        let height = rgn.rowSizes[j];
-
-
-        // Setup the cell config parameters.
-        config.x = x;
-        config.y = y;
-        config.width = width;
-        config.height = height;
-        config.row = row;
-        config.column = column;
-        config.value = data.value;
-        config.options = data.options;
-
-        // Paint the cell using the selected renderer and method.
-        renderer[method](gc, config);
-
-        // Increment the running Y coordinate.
-        y += height;
-      }
-
-      // Increment the running X coordinate.
-      x += width;
+  function drawCellBackgrounds(gc: CanvasRenderingContext2D, rgn: Region): void {
+    let { renderCount, cellRenderers, rendererConfigs } = rgn;
+    for (let i = 0; i < renderCount; ++i) {
+      cellRenderers[i].drawBackground(gc, rendererConfigs[i]);
     }
   }
 
   /**
-   * Draw a rectangle around the specified region.
+   * Draw the contents of the cells in the given region.
    */
   export
-  function drawRegionRect(gc: CanvasRenderingContext2D, rgn: Region): void {
-    gc.beginPath();
-    gc.rect(rgn.x + 0.5, rgn.y + 0.5, rgn.width - 1, rgn.height - 1);
-    gc.lineWidth = 1;
-    gc.strokeStyle = nextColor();
-    gc.stroke();
+  function drawCellContents(gc: CanvasRenderingContext2D, rgn: Region): void {
+    let { renderCount, cellRenderers, rendererConfigs } = rgn;
+    for (let i = 0; i < renderCount; ++i) {
+      cellRenderers[i].drawContent(gc, rendererConfigs[i]);
+    }
   }
 
-  const nextColor = (() => {
-    let ci = 0;
-    const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'cyan'];
-    return () => colors[ci++ % colors.length];
-  })();
+  /**
+   * Draw the borders of the cells in the given region.
+   */
+  export
+  function drawCellBorders(gc: CanvasRenderingContext2D, rgn: Region): void {
+    let { renderCount, cellRenderers, rendererConfigs } = rgn;
+    for (let i = 0; i < renderCount; ++i) {
+      cellRenderers[i].drawBorder(gc, rendererConfigs[i]);
+    }
+  }
 }

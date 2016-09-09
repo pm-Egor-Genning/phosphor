@@ -28,15 +28,19 @@ abstract class CellRenderer {
    * #### Notes
    * The renderer should treat the configuration data as read-only.
    *
-   * Saving and restoring the graphics context state is an expensive
-   * operation, which should be avoided when possible.
-   *
-   * The renderer **must** reset any applied clipping regions and
-   * transforms before returning.
-   *
    * The render **must not** draw outside of the bounding rectangle.
+   * Saving and restoring the graphics context state is an expensive
+   * operation, which should be avoided if possible. A clipping rect
+   * **is not** setup for the cell in advance. The renderer **must**
+   * reset applied clipping regions and transforms before returning.
    */
-  abstract paint(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
+  // abstract paint(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
+
+  abstract drawBackground(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
+
+  abstract drawContent(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
+
+  abstract drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
 }
 
 
@@ -119,32 +123,102 @@ namespace CellRenderer {
  *
  */
 export
-class SimpleCellRenderer extends CellRenderer {
+abstract class SimpleCellRenderer extends CellRenderer {
   /**
    *
    */
-  paint(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
-    // Draw the cell background.
-    this.drawBackground(gc, config);
-
-    // Draw the cell content.
-    this.drawContent(gc, config);
-
-    // Finally, draw the cell border.
-    this.drawBorder(gc, config);
+  constructor(options: SimpleCellRenderer.IOptions = {}) {
+    super();
+    this.backgroundColor = options.backgroundColor || '';
   }
 
   /**
    *
    */
-  protected drawBackground(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
+  backgroundColor: SimpleCellRenderer.BackgroundColor;
 
+  /**
+   *
+   */
+  drawBackground(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
+    //
+    let opts = config.options as SimpleCellRenderer.IOptions;
+
+    //
+    let bgColor = (opts && opts.backgroundColor) || this.backgroundColor;
+
+    //
+    let color = '';
+    if (typeof bgColor === 'string') {
+      color = bgColor;
+    } else {
+      color = bgColor(config.row, config.column, config.value);
+    }
+
+    //
+    if (!color) {
+      return;
+    }
+
+    //
+    gc.fillStyle = color;
+    gc.fillRect(config.x - 1, config.y - 1, config.width + 1, config.height + 1);
   }
 
   /**
    *
    */
-  protected drawContent(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
+  drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
+    if ((config.row === 10) && (config.column === 10)) {
+      gc.beginPath();
+      gc.rect(config.x - 0.0, config.y - 0.0, config.width - 1, config.height -1);
+      gc.strokeStyle = 'red';
+      gc.lineWidth = 2;
+      gc.stroke();
+    }
+  }
+}
+
+
+/**
+ * The namespace for the `SimpleCellRenderer` class statics.
+ */
+export
+namespace SimpleCellRenderer {
+  /**
+   *
+   */
+  export
+  type ColorFunc = (row: number, column: number, value: any) => string;
+
+  /**
+   *
+   */
+  export
+  type BackgroundColor = string | ColorFunc;
+
+  /**
+   *
+   */
+  export
+  interface IOptions {
+    /**
+     *
+     */
+    backgroundColor?: BackgroundColor;
+  }
+}
+
+
+/**
+ *
+ */
+export
+class TextCellRenderer extends SimpleCellRenderer {
+  /**
+   *
+   */
+  drawContent(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
     // Bail if there is no cell value.
     if (!config.value) {
       return;
@@ -160,12 +234,5 @@ class SimpleCellRenderer extends CellRenderer {
     let y = config.y + config.height / 2;
 
     gc.fillText(text, x, y);
-  }
-
-  /**
-   *
-   */
-  protected drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
-
   }
 }
