@@ -56,8 +56,15 @@ class TestHeader extends GridHeader {
   }
 }
 
-
 class TestModel extends DataModel {
+
+  redOptions = {
+    backgroundColor: '#FF9900'
+  };
+
+  greenOptions = {
+    backgroundColor: '#93C47D'
+  };
 
   rowCount(): number {
     return 40;
@@ -77,6 +84,14 @@ class TestModel extends DataModel {
 
   cellData(row: number, column: number, out: DataModel.ICellData): void {
     out.value = `(${row}, ${column})`;
+    if (row < 5 || row > 15 || column < 5 || column > 15) {
+      return;
+    }
+    if (column % 2) {
+      out.options = this.redOptions;
+    } else {
+      out.options = this.greenOptions;
+    }
   }
 }
 
