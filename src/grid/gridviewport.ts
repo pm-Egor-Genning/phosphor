@@ -972,7 +972,7 @@ namespace Private {
   export
   function drawCellBackgrounds(gc: CanvasRenderingContext2D, rgn: Region): void {
     let { renderCount, cellRenderers, rendererConfigs } = rgn;
-    for (let i = 0; i < renderCount; ++i) {
+    for (let i = renderCount - 1; i >= 0; --i) {
       cellRenderers[i].drawBackground(gc, rendererConfigs[i]);
     }
   }
@@ -983,7 +983,7 @@ namespace Private {
   export
   function drawCellContents(gc: CanvasRenderingContext2D, rgn: Region): void {
     let { renderCount, cellRenderers, rendererConfigs } = rgn;
-    for (let i = 0; i < renderCount; ++i) {
+    for (let i = renderCount - 1; i >= 0; --i) {
       cellRenderers[i].drawContent(gc, rendererConfigs[i]);
     }
   }
@@ -994,7 +994,7 @@ namespace Private {
   export
   function drawCellBorders(gc: CanvasRenderingContext2D, rgn: Region): void {
     let { renderCount, cellRenderers, rendererConfigs } = rgn;
-    for (let i = 0; i < renderCount; ++i) {
+    for (let i = renderCount - 1; i >= 0; --i) {
       cellRenderers[i].drawBorder(gc, rendererConfigs[i]);
     }
   }
