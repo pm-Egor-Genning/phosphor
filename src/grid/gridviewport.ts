@@ -662,14 +662,15 @@ class GridViewport extends Widget {
       return;
     }
 
-    // Ensure there is a sufficient number of render configs.
-    let maxConfigCount = rgn.rowCount * rgn.columnCount;
-    while (rgn.rendererConfigs.length < maxConfigCount) {
-      rgn.rendererConfigs.push(Private.createEmptyConfig());
-    }
+    // Setup the cell data object for querying the data model.
+    let data: DataModel.ICellData = {
+      value: null,
+      renderer: '',
+      options: null
+    };
 
-    // Create a cell data object for querying the data model.
-    let data = Private.createEmptyData();
+    // Ensure there are sufficient renderer configs in the region.
+    Private.ensureRendererConfigs(rgn);
 
     // Iterate over the columns in the region.
     for (let i = 0, x = rgn.x; i < rgn.columnCount; ++i) {
@@ -897,22 +898,18 @@ namespace Private {
   }
 
   /**
-   * Create an empty cell data object.
+   * Ensure the region contains sufficient renderer configs.
    */
   export
-  function createEmptyData(): DataModel.ICellData {
-    return { value: null, renderer: '', options: null };
-  }
-
-  /**
-   * Create an empty cell renderer config.
-   */
-  export
-  function createEmptyConfig(): CellRenderer.IConfig {
-    return {
-      x: 0, y: 0, width: 0, height: 0,
-      row: 0, column: 0, value: null, options: null
-    };
+  function ensureRendererConfigs(rgn: Region): void {
+    let configs = rgn.rendererConfigs;
+    let count = rgn.rowCount * rgn.columnCount;
+    for (let n = configs.length; n < count; ++n) {
+      configs[n] = {
+        x: 0, y: 0, width: 0, height: 0,
+        row: 0, column: 0, value: null, options: null
+      };
+    }
   }
 
   /**
