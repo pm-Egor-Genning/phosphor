@@ -390,19 +390,43 @@ class GridViewport extends Widget {
    *
    * @param name - The name of the cell renderer of interest.
    *
-   * @param renderer - The cell renderer to assign to the name.
+   * @param value - The cell renderer to assign to the name.
    *
    * #### Notes
    * The given renderer will override the previous renderer for the
    * specified name. If the renderer is `null` or `undefined`, the
    * previous renderer will be removed.
    */
-  setCellRenderer(name: string, renderer: CellRenderer): void {
-    if (renderer) {
-      this._cellRenderers[name] = renderer;
+  setCellRenderer(name: string, value: CellRenderer): void {
+    // Null and undefined are treated the same.
+    value = value || void 0;
+
+    // Lookup the old renderer.
+    let old = this._cellRenderers[name];
+
+    // Do nothing if the renderer does not change.
+    if (old === value) {
+      return;
+    }
+
+    // Disconnect the signal handlers from the old renderer.
+    if (old) {
+      old.changed.disconnect(this._onCellRendererChanged, this);
+    }
+
+    // Connect the signal handlers to the new renderer.
+    if (value) {
+      value.changed.connect(this._onCellRendererChanged, this);
+    }
+
+    // Update the cell renderer map.
+    if (value) {
+      this._cellRenderers[name] = value;
     } else {
       delete this._cellRenderers[name];
     }
+
+    // Schedule an update of the viewport
     this.update();
   }
 
@@ -746,6 +770,11 @@ class GridViewport extends Widget {
    * Handle the `sectionsResized` signal of the grid sections.
    */
   private _onSectionsResized(sender: GridHeader, range: GridHeader.ISectionRange): void { }
+
+  /**
+   * Handle the `changed` signal of the cell renderers.
+   */
+  private _onCellRendererChanged(sender: CellRenderer): void { }
 
   private _scrollX = 0;
   private _scrollY = 0;

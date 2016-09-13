@@ -5,6 +5,9 @@
 |
 | The full license is in the file LICENSE, distributed with this software.
 |----------------------------------------------------------------------------*/
+import {
+  ISignal, defineSignal
+} from '../core/signaling';
 
 
 /**
@@ -18,6 +21,15 @@
  */
 export
 abstract class CellRenderer {
+  /**
+   * A signal emitted when the state of the renderer has changed.
+   *
+   * #### Notes
+   * Subclasses should emit this signal when their state has changed
+   * such that any listening grids should re-render their content.
+   */
+  changed: ISignal<this, void>;
+
   /**
    * Draw the background for the cell.
    *
@@ -60,6 +72,10 @@ abstract class CellRenderer {
    */
   abstract drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
 }
+
+
+// Define the signals for the `CellRenderer` class
+defineSignal(CellRenderer.prototype, 'changed');
 
 
 /**
