@@ -159,8 +159,8 @@ namespace CellRenderer {
  * A partial implementation of a simple cell renderer.
  *
  * #### Notes
- * This base class handles drawing the background and border of simple
- * cell, and leaves the content to be handled by a subclass.
+ * This abstract base class draws the background and border of simple
+ * cell, while leaving the cell content to be drawn by a subclass.
  */
 export
 abstract class SimpleCellRenderer extends CellRenderer {
@@ -171,13 +171,27 @@ abstract class SimpleCellRenderer extends CellRenderer {
    */
   constructor(options: SimpleCellRenderer.IOptions = {}) {
     super();
-    this.backgroundColor = options.backgroundColor || '';
+    this._backgroundColor = options.backgroundColor || '';
   }
 
   /**
    *
    */
-  backgroundColor: SimpleCellRenderer.BackgroundColor;
+  get backgroundColor(): SimpleCellRenderer.BackgroundColor {
+    return this._backgroundColor;
+  }
+
+  /**
+   *
+   */
+  set backgroundColor(value: SimpleCellRenderer.BackgroundColor) {
+    value = value || '';
+    if (this._backgroundColor === value) {
+      return;
+    }
+    this._backgroundColor = value;
+    this.changed.emit();
+  }
 
   /**
    * Draw the background for the cell.
