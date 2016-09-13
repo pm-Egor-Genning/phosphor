@@ -84,7 +84,7 @@ class TestModel extends DataModel {
 
   cellData(row: number, column: number, out: DataModel.ICellData): void {
     out.value = `(${row}, ${column})`;
-    if (row < 5 || row > 15 || column < 5 || column > 15) {
+    if (row < 1 || row > 11 || column < 1 || column > 11) {
       return;
     }
     if (column % 2) {
@@ -111,7 +111,7 @@ class DataGrid extends Widget {
     let viewport = new GridViewport();
     viewport.addClass(VIEWPORT_CLASS);
     viewport.rowHeader = new TestHeader(20);
-    viewport.columnHeader = new TestHeader(60);
+    viewport.columnHeader = new TestHeader(100);
     viewport.model = new TestModel();
 
     let layout = new BoxLayout();

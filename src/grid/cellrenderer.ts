@@ -19,27 +19,45 @@
 export
 abstract class CellRenderer {
   /**
-   * Paint the contents for the specified cell.
+   * Draw the background for the cell.
    *
-   * @param gc - The graphics context to use for rendering.
+   * @param gc - The graphics context to use for drawing.
    *
    * @param config - The configuration data for the cell.
+   *   This object should be treated as read-only.
    *
    * #### Notes
-   * The renderer should treat the configuration data as read-only.
-   *
-   * The render **must not** draw outside of the bounding rectangle.
-   * Saving and restoring the graphics context state is an expensive
-   * operation, which should be avoided if possible. A clipping rect
-   * **is not** setup for the cell in advance. The renderer **must**
-   * reset applied clipping regions and transforms before returning.
+   * The renderer **must not** draw outside of the box specified by
+   * `(x - 1, y - 1`) and `(x + width - 1, y + height - 1)`.
    */
-  // abstract paint(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
-
   abstract drawBackground(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
 
+  /**
+   * Draw the content for the cell.
+   *
+   * @param gc - The graphics context to use for drawing.
+   *
+   * @param config - The configuration data for the cell.
+   *   This object should be treated as read-only.
+   *
+   * #### Notes
+   * The renderer **must not** draw outside of the box specified by
+   * `(x - 1, y - 1`) and `(x + width - 1, y + height - 1)`.
+   */
   abstract drawContent(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
 
+  /**
+   * Draw the border for the cell.
+   *
+   * @param gc - The graphics context to use for drawing.
+   *
+   * @param config - The configuration data for the cell.
+   *   This object should be treated as read-only.
+   *
+   * #### Notes
+   * The renderer **must not** draw outside of the box specified by
+   * `(x - 1, y - 1`) and `(x + width - 1, y + height - 1)`.
+   */
   abstract drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void;
 }
 
@@ -55,38 +73,40 @@ namespace CellRenderer {
   export
   interface IConfig {
     /**
-     * The X coordinate of the bounding rectangle.
+     * The X coordinate of the cell bounding rectangle.
      *
      * #### Notes
      * This is the viewport coordinate of the rect, and is aligned to
      * the cell boundary. It may be negative if the cell is partially
-     * visible.
+     * off-screen.
      */
     x: number;
 
     /**
-     * The Y coordinate of the bounding rectangle.
+     * The Y coordinate of the cell bounding rectangle.
      *
      * #### Notes
      * This is the viewport coordinate of the rect, and is aligned to
      * the cell boundary. It may be negative if the cell is partially
-     * visible.
+     * off-screen.
      */
     y: number;
 
     /**
-     * The width of the bounding rectangle.
+     * The width of the cell bounding rectangle.
      *
      * #### Notes
-     * This value is aligned to the cell boundary.
+     * This value is aligned to the cell boundary. It may extend past
+     * the canvas bounds if the cell is partially off-screen.
      */
     width: number;
 
     /**
-     * The width of the bounding rectangle.
+     * The width of the cell bounding rectangle.
      *
      * #### Notes
-     * This value is aligned to the cell boundary.
+     * This value is aligned to the cell boundary. It may extend past
+     * the canvas bounds if the cell is partially off-screen.
      */
     height: number;
 
@@ -101,7 +121,7 @@ namespace CellRenderer {
     column: number;
 
     /**
-     * The data value for the cell.
+     * The data value for the cell, or `null`.
      *
      * #### Notes
      * This value is provided by the data model.
@@ -109,7 +129,7 @@ namespace CellRenderer {
     value: any;
 
     /**
-     * The renderer options for the cell.
+     * The renderer options for the cell, or `null`.
      *
      * #### Notes
      * This value is provided by the data model.
@@ -120,12 +140,18 @@ namespace CellRenderer {
 
 
 /**
+ * A partial implementation of a simple cell renderer.
  *
+ * #### Notes
+ * This base class handles drawing the background and border of simple
+ * cell, and leaves the content to be handled by a subclass.
  */
 export
 abstract class SimpleCellRenderer extends CellRenderer {
   /**
+   * Construct a new simple cell renderer.
    *
+   * @param options - The options for initializing the renderer.
    */
   constructor(options: SimpleCellRenderer.IOptions = {}) {
     super();
@@ -138,7 +164,12 @@ abstract class SimpleCellRenderer extends CellRenderer {
   backgroundColor: SimpleCellRenderer.BackgroundColor;
 
   /**
+   * Draw the background for the cell.
    *
+   * @param gc - The graphics context to use for drawing.
+   *
+   * @param config - The configuration data for the cell.
+   *   This object should be treated as read-only.
    */
   drawBackground(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
     //
@@ -146,6 +177,11 @@ abstract class SimpleCellRenderer extends CellRenderer {
 
     //
     let bgColor = (opts && opts.backgroundColor) || this.backgroundColor;
+
+    //
+    if (!bgColor) {
+      return;
+    }
 
     //
     let color = '';
@@ -166,16 +202,15 @@ abstract class SimpleCellRenderer extends CellRenderer {
   }
 
   /**
+   * Draw the border for the cell.
    *
+   * @param gc - The graphics context to use for drawing.
+   *
+   * @param config - The configuration data for the cell.
+   *   This object should be treated as read-only.
    */
   drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
-    if ((config.row === 10) && (config.column === 10)) {
-      gc.beginPath();
-      gc.rect(config.x - 0.0, config.y - 0.0, config.width - 1, config.height -1);
-      gc.strokeStyle = 'red';
-      gc.lineWidth = 2;
-      gc.stroke();
-    }
+
   }
 }
 
