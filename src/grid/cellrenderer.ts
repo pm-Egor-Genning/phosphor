@@ -11,6 +11,13 @@ import {
 
 
 /**
+ *
+ */
+export
+type CellFunc<T> = (row: number, column: number, value: any) => T;
+
+
+/**
  * An object which renders the contents of a grid cell.
  *
  * #### Notes
@@ -159,7 +166,7 @@ namespace CellRenderer {
  * A partial implementation of a simple cell renderer.
  *
  * #### Notes
- * This abstract base class draws the background and border of simple
+ * This abstract base class draws the background and border for a
  * cell, while leaving the cell content to be drawn by a subclass.
  */
 export
@@ -175,22 +182,29 @@ abstract class SimpleCellRenderer extends CellRenderer {
   }
 
   /**
-   *
+   * Get the background color for the cell renderer.
    */
-  get backgroundColor(): SimpleCellRenderer.BackgroundColor {
+  get backgroundColor(): SimpleCellRenderer.Color {
     return this._backgroundColor;
   }
 
   /**
-   *
+   * Set the background color for the cell renderer.
    */
-  set backgroundColor(value: SimpleCellRenderer.BackgroundColor) {
+  set backgroundColor(value: SimpleCellRenderer.Color) {
+    // Null and undefined are treated the same.
     value = value || '';
+
+    // Do nothing if the background color does not change.
     if (this._backgroundColor === value) {
       return;
     }
+
+    // Update the internal background color.
     this._backgroundColor = value;
-    this.changed.emit();
+
+    // Emit the changed notification signal.
+    this.changed.emit(void 0);
   }
 
   /**
@@ -202,32 +216,34 @@ abstract class SimpleCellRenderer extends CellRenderer {
    *   This object should be treated as read-only.
    */
   drawBackground(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
-    //
+    // Cast the data model options to the appropriate type.
     let opts = config.options as SimpleCellRenderer.IOptions;
 
-    //
-    let bgColor = (opts && opts.backgroundColor) || this.backgroundColor;
+    // Lookup the effective background color.
+    let bgColor = (opts && opts.backgroundColor) || this._backgroundColor;
 
-    //
+    // Bail early if no background color is specified.
     if (!bgColor) {
       return;
     }
 
-    //
-    let color = '';
+    // Resolve the background color to an actual color string.
+    let color: string;
     if (typeof bgColor === 'string') {
       color = bgColor;
     } else {
       color = bgColor(config.row, config.column, config.value);
     }
 
-    //
+    // Bail early if the color string is empty.
     if (!color) {
       return;
     }
 
-    //
+    // Setup the context fill style.
     gc.fillStyle = color;
+
+    // Fill the background with the specified color.
     gc.fillRect(config.x - 1, config.y - 1, config.width + 1, config.height + 1);
   }
 
@@ -242,6 +258,9 @@ abstract class SimpleCellRenderer extends CellRenderer {
   drawBorder(gc: CanvasRenderingContext2D, config: CellRenderer.IConfig): void {
 
   }
+
+  private _border: SimpleCellRenderer.Border;
+  private _backgroundColor: string | CellFunc<string>;
 }
 
 
@@ -254,13 +273,28 @@ namespace SimpleCellRenderer {
    *
    */
   export
-  type ColorFunc = (row: number, column: number, value: any) => string;
+  interface IBorderPart {
+    /**
+     *
+     */
+    position: 'all' | 'top' | 'left' | 'right' | 'bottom';
+
+    /**
+     *
+     */
+    color: string;
+
+    /**
+     *
+     */
+    style: 'solid' | 'dash' | 'dot' | 'bold-solid' | 'bold-dash';
+  }
 
   /**
    *
    */
   export
-  type BackgroundColor = string | ColorFunc;
+  type Border = IBorderPart | IBorderPart[];
 
   /**
    *
@@ -270,7 +304,12 @@ namespace SimpleCellRenderer {
     /**
      *
      */
-    backgroundColor?: BackgroundColor;
+    backgroundColor?: string | CellFunc<string>;
+
+    /**
+     *
+     */
+    border?: Border | CellFunc<Border>;
   }
 }
 
