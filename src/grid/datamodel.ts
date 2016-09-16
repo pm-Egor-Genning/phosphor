@@ -18,62 +18,62 @@ abstract class DataModel {
   /**
    *
    */
-  modelChanged: ISignal<this, void>;
+  readonly modelChanged: ISignal<this, void>;
 
   /**
    *
    */
-  rowsInserted: ISignal<this, DataModel.ISectionRange>;
+  readonly rowsInserted: ISignal<this, DataModel.ISectionRange>;
 
   /**
    *
    */
-  rowsRemoved: ISignal<this, DataModel.ISectionRange>;
+  readonly rowsRemoved: ISignal<this, DataModel.ISectionRange>;
 
   /**
    *
    */
-  rowsMoved: ISignal<this, DataModel.ISectionRangeMove>;
+  readonly rowsMoved: ISignal<this, DataModel.ISectionRangeMove>;
 
   /**
    *
    */
-  columnsInserted: ISignal<this, DataModel.ISectionRange>;
+  readonly columnsInserted: ISignal<this, DataModel.ISectionRange>;
 
   /**
    *
    */
-  columnsRemoved: ISignal<this, DataModel.ISectionRange>;
+  readonly columnsRemoved: ISignal<this, DataModel.ISectionRange>;
 
   /**
    *
    */
-  columnsMoved: ISignal<this, DataModel.ISectionRangeMove>;
+  readonly columnsMoved: ISignal<this, DataModel.ISectionRangeMove>;
 
   /**
    *
    */
-  rowHeaderDataChanged: ISignal<this, DataModel.ISectionRange>;
+  readonly rowHeaderDataChanged: ISignal<this, DataModel.ISectionRange>;
 
   /**
    *
    */
-  columnHeaderDataChanged: ISignal<this, DataModel.ISectionRange>;
+  readonly columnHeaderDataChanged: ISignal<this, DataModel.ISectionRange>;
 
   /**
    *
    */
-  cellDataChanged: ISignal<this, DataModel.ICellRange>;
+  readonly cellDataChanged: ISignal<this, DataModel.ICellRange>;
 
   /**
    *
    */
-  abstract rowCount(): number;
+  abstract readonly rowCount: number;
 
   /**
    *
    */
-  abstract columnCount(): number;
+  abstract readonly columnCount: number;
 
   /**
    *
@@ -139,12 +139,12 @@ namespace DataModel {
     /**
      *
      */
-    start: number;
+    readonly start: number;
 
     /**
      *
      */
-    end: number;
+    readonly end: number;
   }
 
   /**
@@ -155,7 +155,7 @@ namespace DataModel {
     /**
      *
      */
-    destination: number;
+    readonly destination: number;
   }
 
   /**
@@ -166,21 +166,21 @@ namespace DataModel {
     /**
      *
      */
-    startRow: number;
+    readonly startRow: number;
 
     /**
      *
      */
-    endRow: number;
+    readonly endRow: number;
 
     /**
      *
      */
-    startColumn: number;
+    readonly startColumn: number;
 
     /**
      *
      */
-    endColumn: number;
+    readonly endColumn: number;
   }
 }

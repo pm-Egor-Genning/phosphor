@@ -28,7 +28,7 @@ abstract class CellRenderer {
    * Subclasses should emit this signal when their state has changed
    * such that any listening grids should re-render their content.
    */
-  changed: ISignal<this, void>;
+  readonly changed: ISignal<this, void>;
 
   /**
    * Draw the background for the cell.
@@ -36,7 +36,6 @@ abstract class CellRenderer {
    * @param gc - The graphics context to use for drawing.
    *
    * @param config - The configuration data for the cell.
-   *   This object should be treated as read-only.
    *
    * #### Notes
    * The renderer **must not** draw outside of the box specified by
@@ -50,7 +49,6 @@ abstract class CellRenderer {
    * @param gc - The graphics context to use for drawing.
    *
    * @param config - The configuration data for the cell.
-   *   This object should be treated as read-only.
    *
    * #### Notes
    * The renderer **must not** draw outside of the box specified by
@@ -64,7 +62,6 @@ abstract class CellRenderer {
    * @param gc - The graphics context to use for drawing.
    *
    * @param config - The configuration data for the cell.
-   *   This object should be treated as read-only.
    *
    * #### Notes
    * The renderer **must not** draw outside of the box specified by
@@ -96,7 +93,7 @@ namespace CellRenderer {
      * the cell boundary. It may be negative if the cell is partially
      * off-screen.
      */
-    x: number;
+    readonly x: number;
 
     /**
      * The Y coordinate of the cell bounding rectangle.
@@ -106,7 +103,7 @@ namespace CellRenderer {
      * the cell boundary. It may be negative if the cell is partially
      * off-screen.
      */
-    y: number;
+    readonly y: number;
 
     /**
      * The width of the cell bounding rectangle.
@@ -115,7 +112,7 @@ namespace CellRenderer {
      * This value is aligned to the cell boundary. It may extend past
      * the canvas bounds if the cell is partially off-screen.
      */
-    width: number;
+    readonly width: number;
 
     /**
      * The width of the cell bounding rectangle.
@@ -124,17 +121,17 @@ namespace CellRenderer {
      * This value is aligned to the cell boundary. It may extend past
      * the canvas bounds if the cell is partially off-screen.
      */
-    height: number;
+    readonly height: number;
 
     /**
      * The row index of the cell.
      */
-    row: number;
+    readonly row: number;
 
     /**
      * The column index of the cell.
      */
-    column: number;
+    readonly column: number;
 
     /**
      * The data value for the cell, or `null`.
@@ -142,7 +139,7 @@ namespace CellRenderer {
      * #### Notes
      * This value is provided by the data model.
      */
-    value: any;
+    readonly value: any;
 
     /**
      * The renderer options for the cell, or `null`.
@@ -150,7 +147,7 @@ namespace CellRenderer {
      * #### Notes
      * This value is provided by the data model.
      */
-    options: any;
+    readonly options: any;
   }
 }
 
@@ -177,65 +174,37 @@ abstract class SimpleCellRenderer extends CellRenderer {
 
   /**
    * Get the background options for the cell renderer.
-   *
-   * #### Notes
-   * This may be `null`.
    */
-  get background(): SimpleCellRenderer.BackgroundOptions {
+  get background(): SimpleCellRenderer.BackgroundOptions | null {
     return this._background;
   }
 
   /**
    * Set the background options for the cell renderer.
-   *
-   * #### Notes
-   * This may be `null`.
    */
-  set background(value: SimpleCellRenderer.BackgroundOptions) {
-    // Null and undefined are treated the same.
-    value = value || null;
-
-    // Do nothing if the background options do not change.
+  set background(value: SimpleCellRenderer.BackgroundOptions | null) {
     if (this._background === value) {
       return;
     }
-
-    // Update the internal background options.
     this._background = value;
-
-    // Emit the changed notification signal.
     this.changed.emit(void 0);
   }
 
   /**
    * Get the border options for the cell renderer.
-   *
-   * #### Notes
-   * This may be `null`.
    */
-  get border(): SimpleCellRenderer.BorderOptions {
+  get border(): SimpleCellRenderer.BorderOptions | null {
     return this._border;
   }
 
   /**
    * Set the border options for the cell renderer.
-   *
-   * #### Notes
-   * This may be `null`.
    */
-  set border(value: SimpleCellRenderer.BorderOptions) {
-    // Null and undefined are treated the same.
-    value = value || null;
-
-    // Do nothing if the border options do not change.
+  set border(value: SimpleCellRenderer.BorderOptions | null) {
     if (this._border === value) {
       return;
     }
-
-    // Update the internal border options.
     this._border = value;
-
-    // Emit the changed notification signal.
     this.changed.emit(void 0);
   }
 
@@ -260,12 +229,7 @@ abstract class SimpleCellRenderer extends CellRenderer {
     }
 
     // Resolve the options function if necessary.
-    let ibgOpts: SimpleCellRenderer.IBackgroundOptions;
-    if (typeof bgOpts === 'function') {
-      ibgOpts = (bgOpts as SimpleCellRenderer.BackgroundFunc)(config);
-    } else {
-      ibgOpts = bgOpts;
-    }
+    let ibgOpts = typeof bgOpts === 'function' ? bgOpts(config) : bgOpts;
 
     // Bail early if no color is specified.
     if (!ibgOpts.color) {
@@ -291,8 +255,8 @@ abstract class SimpleCellRenderer extends CellRenderer {
 
   }
 
-  private _background: SimpleCellRenderer.BackgroundOptions;
-  private _border: SimpleCellRenderer.BorderOptions;
+  private _background: SimpleCellRenderer.BackgroundOptions | null;
+  private _border: SimpleCellRenderer.BorderOptions | null;
 }
 
 
@@ -309,7 +273,7 @@ namespace SimpleCellRenderer {
     /**
      *
      */
-    color?: string;
+    readonly color?: string;
   }
 
   /**
@@ -343,107 +307,95 @@ namespace SimpleCellRenderer {
     /**
      *
      */
-    drawOrder?: BorderDrawOrder;
+    readonly drawOrder?: BorderDrawOrder;
 
     /**
      *
      */
-    color?: string;
+    readonly color?: string;
 
     /**
      *
      */
-    weight?: BorderWeight;
+    readonly weight?: BorderWeight;
 
     /**
      *
      */
-    lineStyle?: BorderLineStyle;
+    readonly lineStyle?: BorderLineStyle;
 
     /**
      *
      */
-    topColor?: string;
+    readonly topColor?: string;
 
     /**
      *
      */
-    topWeight?: BorderWeight;
+    readonly topWeight?: BorderWeight;
 
     /**
      *
      */
-    topLineStyle?: BorderLineStyle;
+    readonly topLineStyle?: BorderLineStyle;
 
     /**
      *
      */
-    leftColor?: string;
+    readonly leftColor?: string;
 
     /**
      *
      */
-    leftWeight?: BorderWeight;
+    readonly leftWeight?: BorderWeight;
 
     /**
      *
      */
-    leftLineStyle?: BorderLineStyle;
+    readonly leftLineStyle?: BorderLineStyle;
 
     /**
      *
      */
-    rightColor?: string;
+    readonly rightColor?: string;
 
     /**
      *
      */
-    rightWeight?: BorderWeight;
+    readonly rightWeight?: BorderWeight;
 
     /**
      *
      */
-    rightLineStyle?: BorderLineStyle;
+    readonly rightLineStyle?: BorderLineStyle;
 
     /**
      *
      */
-    bottomColor?: string;
+    readonly bottomColor?: string;
 
     /**
      *
      */
-    bottomWeight?: BorderWeight;
+    readonly bottomWeight?: BorderWeight;
 
     /**
      *
      */
-    bottomLineStyle?: BorderLineStyle;
+    readonly bottomLineStyle?: BorderLineStyle;
   }
 
   /**
    *
    */
   export
-  type BackgroundFunc = (config: CellRenderer.IConfig) => IBackgroundOptions;
+  type BackgroundOptions = IBackgroundOptions | ((config: CellRenderer.IConfig) => IBackgroundOptions);
 
   /**
    *
    */
   export
-  type BackgroundOptions = IBackgroundOptions | BackgroundFunc;
-
-  /**
-   *
-   */
-  export
-  type BorderFunc = (config: CellRenderer.IConfig) => IBorderOptions;
-
-  /**
-   *
-   */
-  export
-  type BorderOptions = IBorderOptions | BorderFunc;
+  type BorderOptions = IBorderOptions | ((config: CellRenderer.IConfig) => IBorderOptions);
 
   /**
    *
@@ -453,12 +405,12 @@ namespace SimpleCellRenderer {
     /**
      *
      */
-    background?: BackgroundOptions;
+    readonly background?: BackgroundOptions;
 
     /**
      *
      */
-    border?: BorderOptions;
+    readonly border?: BorderOptions;
   }
 }
 

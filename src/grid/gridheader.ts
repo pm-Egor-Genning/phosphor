@@ -26,22 +26,22 @@ abstract class GridHeader extends Widget {
   /**
    *
    */
-  sectionsResized: ISignal<this, GridHeader.ISectionRange>;
+  readonly sectionsResized: ISignal<this, GridHeader.ISectionRange>;
 
   /**
    * abstract
    */
-  model: DataModel;
+  abstract model: DataModel;
 
   /**
    * abstract
    */
-  scrollPosition: number;
+  abstract scrollPosition: number;
 
   /**
    * abstract
    */
-  scrollSize: number;
+  abstract scrollSize: number;
 
   /**
    * Get the origin of the section at a specific index.
@@ -110,13 +110,13 @@ namespace GridHeader {
      *
      * This must be an integer `<= last`.
      */
-    first: number;
+    readonly first: number;
 
     /**
      * The last index in the range, inclusive.
      *
      * This must be an integer `>= first`.
      */
-    last: number;
+    readonly last: number;
   }
 }

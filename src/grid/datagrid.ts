@@ -66,13 +66,9 @@ class TestModel extends DataModel {
     backgroundColor: '#93C47D'
   };
 
-  rowCount(): number {
-    return 40;
-  }
+  readonly rowCount = 40;
 
-  columnCount(): number {
-    return 20;
-  }
+  readonly columnCount = 20;
 
   rowHeaderData(row: number, out: DataModel.ICellData): void {
 
