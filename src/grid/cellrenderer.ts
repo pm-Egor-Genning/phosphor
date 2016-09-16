@@ -11,13 +11,6 @@ import {
 
 
 /**
- *
- */
-export
-type CellFunc<T> = (row: number, column: number, value: any) => T;
-
-
-/**
  * An object which renders the contents of a grid cell.
  *
  * #### Notes
@@ -163,7 +156,7 @@ namespace CellRenderer {
 
 
 /**
- * A partial implementation of a simple cell renderer.
+ * A partial implementation of a cell renderer.
  *
  * #### Notes
  * This abstract base class draws the background and border for a
@@ -178,30 +171,69 @@ abstract class SimpleCellRenderer extends CellRenderer {
    */
   constructor(options: SimpleCellRenderer.IOptions = {}) {
     super();
-    this._backgroundColor = options.backgroundColor || '';
+    this._background = options.background || null;
+    this._border = options.border || null;
   }
 
   /**
-   * Get the background color for the cell renderer.
+   * Get the background options for the cell renderer.
+   *
+   * #### Notes
+   * This may be `null`.
    */
-  get backgroundColor(): SimpleCellRenderer.Color {
-    return this._backgroundColor;
+  get background(): SimpleCellRenderer.BackgroundOptions {
+    return this._background;
   }
 
   /**
-   * Set the background color for the cell renderer.
+   * Set the background options for the cell renderer.
+   *
+   * #### Notes
+   * This may be `null`.
    */
-  set backgroundColor(value: SimpleCellRenderer.Color) {
+  set background(value: SimpleCellRenderer.BackgroundOptions) {
     // Null and undefined are treated the same.
-    value = value || '';
+    value = value || null;
 
-    // Do nothing if the background color does not change.
-    if (this._backgroundColor === value) {
+    // Do nothing if the background options do not change.
+    if (this._background === value) {
       return;
     }
 
-    // Update the internal background color.
-    this._backgroundColor = value;
+    // Update the internal background options.
+    this._background = value;
+
+    // Emit the changed notification signal.
+    this.changed.emit(void 0);
+  }
+
+  /**
+   * Get the border options for the cell renderer.
+   *
+   * #### Notes
+   * This may be `null`.
+   */
+  get border(): SimpleCellRenderer.BorderOptions {
+    return this._border;
+  }
+
+  /**
+   * Set the border options for the cell renderer.
+   *
+   * #### Notes
+   * This may be `null`.
+   */
+  set border(value: SimpleCellRenderer.BorderOptions) {
+    // Null and undefined are treated the same.
+    value = value || null;
+
+    // Do nothing if the border options do not change.
+    if (this._border === value) {
+      return;
+    }
+
+    // Update the internal border options.
+    this._border = value;
 
     // Emit the changed notification signal.
     this.changed.emit(void 0);
@@ -219,29 +251,29 @@ abstract class SimpleCellRenderer extends CellRenderer {
     // Cast the data model options to the appropriate type.
     let opts = config.options as SimpleCellRenderer.IOptions;
 
-    // Lookup the effective background color.
-    let bgColor = (opts && opts.backgroundColor) || this._backgroundColor;
+    // Lookup the background options.
+    let bgOpts = (opts && opts.background) || this._background;
 
-    // Bail early if no background color is specified.
-    if (!bgColor) {
+    // Bail early if no background options are specified.
+    if (!bgOpts) {
       return;
     }
 
-    // Resolve the background color to an actual color string.
-    let color: string;
-    if (typeof bgColor === 'string') {
-      color = bgColor;
+    // Resolve the options function if necessary.
+    let ibgOpts: SimpleCellRenderer.IBackgroundOptions;
+    if (typeof bgOpts === 'function') {
+      ibgOpts = (bgOpts as SimpleCellRenderer.BackgroundFunc)(config);
     } else {
-      color = bgColor(config.row, config.column, config.value);
+      ibgOpts = bgOpts;
     }
 
-    // Bail early if the color string is empty.
-    if (!color) {
+    // Bail early if no color is specified.
+    if (!ibgOpts.color) {
       return;
     }
 
     // Setup the context fill style.
-    gc.fillStyle = color;
+    gc.fillStyle = ibgOpts.color;
 
     // Fill the background with the specified color.
     gc.fillRect(config.x - 1, config.y - 1, config.width + 1, config.height + 1);
@@ -259,8 +291,8 @@ abstract class SimpleCellRenderer extends CellRenderer {
 
   }
 
-  private _border: SimpleCellRenderer.Border;
-  private _backgroundColor: string | CellFunc<string>;
+  private _background: SimpleCellRenderer.BackgroundOptions;
+  private _border: SimpleCellRenderer.BorderOptions;
 }
 
 
@@ -273,28 +305,145 @@ namespace SimpleCellRenderer {
    *
    */
   export
-  interface IBorderPart {
+  interface IBackgroundOptions {
     /**
      *
      */
-    position: 'all' | 'top' | 'left' | 'right' | 'bottom';
-
-    /**
-     *
-     */
-    color: string;
-
-    /**
-     *
-     */
-    style: 'solid' | 'dash' | 'dot' | 'bold-solid' | 'bold-dash';
+    color?: string;
   }
 
   /**
    *
    */
   export
-  type Border = IBorderPart | IBorderPart[];
+  type BorderWeight = 'thin' | 'medium' | 'thick';
+
+  /**
+   *
+   */
+  export
+  type BorderLineStyle = 'none' | 'solid' | 'dash' | 'dot';
+
+  /**
+   *
+   */
+  export
+  type BorderDrawOrder = (
+    'blrt' | 'bltr' | 'brlt' | 'brtl' | 'btlr' | 'btrl' |
+    'lbrt' | 'lbtr' | 'lrbt' | 'lrtb' | 'ltbr' | 'ltrb' |
+    'rblt' | 'rbtl' | 'rlbt' | 'rltb' | 'rtbl' | 'rtlb' |
+    'tblr' | 'tbrl' | 'tlbr' | 'tlrb' | 'trbl' | 'trlb'
+  );
+
+  /**
+   *
+   */
+  export
+  interface IBorderOptions {
+    /**
+     *
+     */
+    drawOrder?: BorderDrawOrder;
+
+    /**
+     *
+     */
+    color?: string;
+
+    /**
+     *
+     */
+    weight?: BorderWeight;
+
+    /**
+     *
+     */
+    lineStyle?: BorderLineStyle;
+
+    /**
+     *
+     */
+    topColor?: string;
+
+    /**
+     *
+     */
+    topWeight?: BorderWeight;
+
+    /**
+     *
+     */
+    topLineStyle?: BorderLineStyle;
+
+    /**
+     *
+     */
+    leftColor?: string;
+
+    /**
+     *
+     */
+    leftWeight?: BorderWeight;
+
+    /**
+     *
+     */
+    leftLineStyle?: BorderLineStyle;
+
+    /**
+     *
+     */
+    rightColor?: string;
+
+    /**
+     *
+     */
+    rightWeight?: BorderWeight;
+
+    /**
+     *
+     */
+    rightLineStyle?: BorderLineStyle;
+
+    /**
+     *
+     */
+    bottomColor?: string;
+
+    /**
+     *
+     */
+    bottomWeight?: BorderWeight;
+
+    /**
+     *
+     */
+    bottomLineStyle?: BorderLineStyle;
+  }
+
+  /**
+   *
+   */
+  export
+  type BackgroundFunc = (config: CellRenderer.IConfig) => IBackgroundOptions;
+
+  /**
+   *
+   */
+  export
+  type BackgroundOptions = IBackgroundOptions | BackgroundFunc;
+
+  /**
+   *
+   */
+  export
+  type BorderFunc = (config: CellRenderer.IConfig) => IBorderOptions;
+
+  /**
+   *
+   */
+  export
+  type BorderOptions = IBorderOptions | BorderFunc;
 
   /**
    *
@@ -304,12 +453,12 @@ namespace SimpleCellRenderer {
     /**
      *
      */
-    backgroundColor?: string | CellFunc<string>;
+    background?: BackgroundOptions;
 
     /**
      *
      */
-    border?: Border | CellFunc<Border>;
+    border?: BorderOptions;
   }
 }
 
