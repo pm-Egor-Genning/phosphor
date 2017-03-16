@@ -66,6 +66,8 @@ class TabPanel extends Widget {
     this.tabBar.tabMoved.connect(this._onTabMoved, this);
     this.tabBar.currentChanged.connect(this._onCurrentChanged, this);
     this.tabBar.tabCloseRequested.connect(this._onTabCloseRequested, this);
+    this.tabBar.tabRefreshRequested.connect(this._onTabRefreshRequested, this);
+    this.tabBar.tabMaximizeRequested.connect(this._onTabMaximizeRequested, this);
     this.tabBar.tabActivateRequested.connect(this._onTabActivateRequested, this);
 
     // Connect the stacked panel signal handlers.
@@ -309,6 +311,14 @@ class TabPanel extends Widget {
    */
   private _onTabCloseRequested(sender: TabBar<Widget>, args: TabBar.ITabCloseRequestedArgs<Widget>): void {
     args.title.owner.close();
+  }
+
+  private _onTabRefreshRequested(sender: TabBar<Widget>, args: TabBar.ITabRefreshRequestedArgs<Widget>): void {
+    console.log('refresh', arguments);
+  }
+
+  private _onTabMaximizeRequested(sender: TabBar<Widget>, args: TabBar.ITabMaximizeRequestedArgs<Widget>): void {
+    console.log('maximize', arguments);
   }
 
   /**

@@ -130,6 +130,15 @@ class TabBar<T> extends Widget {
     return this._tabCloseRequested;
   }
 
+  get tabRefreshRequested(): ISignal<this, TabBar.ITabRefreshRequestedArgs<T>> {
+    return this._tabRefreshRequested;
+  }
+
+  get tabMaximizeRequested(): ISignal<this, TabBar.ITabMaximizeRequestedArgs<T>> {
+    return this._tabMaximizeRequested;
+  }
+
+
   /**
    * A signal emitted when a tab is dragged beyond the detach threshold.
    *
@@ -618,8 +627,13 @@ class TabBar<T> extends Widget {
     }
 
     // Do nothing else if the close icon is clicked.
-    let icon = tabs[index].querySelector(this.renderer.closeIconSelector);
-    if (icon && icon.contains(event.target as HTMLElement)) {
+    let closeIcon = tabs[index].querySelector('.' + this.renderer.closeIconSelector);
+    let refreshIcon = tabs[index].querySelector('.' + this.renderer.refreshIconSelector);
+    let maximizeIcon = tabs[index].querySelector('.' + this.renderer.maximizeIconSelector);
+
+    if ((closeIcon && closeIcon.contains(event.target as HTMLElement)) ||
+      (refreshIcon && refreshIcon.contains(event.target as HTMLElement)) ||
+      (maximizeIcon && maximizeIcon.contains(event.target as HTMLElement))) {
       return;
     }
 
@@ -776,9 +790,19 @@ class TabBar<T> extends Widget {
       }
 
       // Emit the close requested signal if the close icon was released.
-      let icon = tabs[index].querySelector(this.renderer.closeIconSelector);
-      if (icon && icon.contains(event.target as HTMLElement)) {
+      let closeIcon = tabs[index].querySelector('.' + this.renderer.closeIconSelector);
+      let refreshIcon = tabs[index].querySelector('.' + this.renderer.refreshIconSelector);
+      let maximizeIcon = tabs[index].querySelector('.' + this.renderer.maximizeIconSelector);
+
+      if (closeIcon && closeIcon.contains(event.target as HTMLElement)) {
         this._tabCloseRequested.emit({ index, title });
+        return;
+      }
+      if (refreshIcon && refreshIcon.contains(event.target)) {
+        this._tabRefreshRequested.emit({ index: index, title: title });
+        return;
+      } else if (maximizeIcon && maximizeIcon.contains(event.target)) {
+        this._tabMaximizeRequested.emit({ index: index, title: title });
         return;
       }
 
@@ -1014,6 +1038,8 @@ class TabBar<T> extends Widget {
   private _tabMoved = new Signal<this, TabBar.ITabMovedArgs<T>>(this);
   private _currentChanged = new Signal<this, TabBar.ICurrentChangedArgs<T>>(this);
   private _tabCloseRequested = new Signal<this, TabBar.ITabCloseRequestedArgs<T>>(this);
+  private _tabRefreshRequested =  new Signal<this, TabBar.ITabRefreshRequestedArgs<T>>(this);
+  private _tabMaximizeRequested = new Signal<this, TabBar.ITabMaximizeRequestedArgs<T>>(this);
   private _tabDetachRequested = new Signal<this, TabBar.ITabDetachRequestedArgs<T>>(this);
   private _tabActivateRequested = new Signal<this, TabBar.ITabActivateRequestedArgs<T>>(this);
 }
@@ -1205,8 +1231,7 @@ namespace TabBar {
   /**
    * The arguments object for the `tabCloseRequested` signal.
    */
-  export
-  interface ITabCloseRequestedArgs<T> {
+  interface ITabCommonRequestedArgs<T> {
     /**
      * The index of the tab to close.
      */
@@ -1215,7 +1240,16 @@ namespace TabBar {
     /**
      * The title for the tab.
      */
-    readonly title: Title<T>;
+    readonly title: Title<T>;  
+  }
+  
+  export interface ITabCloseRequestedArgs<T> extends ITabCommonRequestedArgs {
+  }
+
+  export interface ITabRefreshRequestedArgs<T> extends ITabCommonRequestedArgs {
+  }
+
+  export interface ITabMaximizeRequestedArgs<T> extends ITabCommonRequestedArgs {
   }
 
   /**
@@ -1280,6 +1314,9 @@ namespace TabBar {
      */
     readonly closeIconSelector: string;
 
+    readonly refreshIconSelector: string;
+    
+    readonly maximizeIconSelector: string;
     /**
      * Render the virtual element for a tab.
      *
@@ -1306,7 +1343,9 @@ namespace TabBar {
     /**
      * A selector which matches the close icon node in a tab.
      */
-    readonly closeIconSelector = '.p-TabBar-tabCloseIcon';
+    readonly closeIconSelector = 'p-TabBar-tabCloseIcon';
+    readonly refreshIconSelector = 'p-TabBar-tabRefreshIcon';
+    readonly maximizeIconSelector = 'p-TabBar-tabMaximizeIcon';
 
     /**
      * Render the virtual element for a tab.
@@ -1324,6 +1363,8 @@ namespace TabBar {
         h.li({ key, className, title, style },
           this.renderIcon(data),
           this.renderLabel(data),
+          this.renderRefreshIcon(data),
+          this.renderMaximizeIcon(data),
           this.renderCloseIcon(data)
         )
       );
@@ -1359,7 +1400,15 @@ namespace TabBar {
      * @returns A virtual element representing the tab close icon.
      */
     renderCloseIcon(data: IRenderData<any>): VirtualElement {
-      return h.div({ className: 'p-TabBar-tabCloseIcon' });
+      return h.div({ className: this.closeIconSelector });
+    }
+
+    renderRefreshIcon(data: IRenderData<any>): VirtualElement {
+      return h.div({ className: this.refreshIconSelector });
+    }
+
+    renderMaximizeIcon(data: IRenderData<any>): VirtualElement {
+      return h.div({ className: this.maximizeIconSelector });
     }
 
     /**
